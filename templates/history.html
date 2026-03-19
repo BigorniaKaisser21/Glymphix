@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Analysis History</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="header-top">
+                <h1>Analysis History</h1>
+                <a href="{{ url_for('index') }}" class="back-btn">← Back to Home</a>
+            </div>
+            <p>Your previous code analyses</p>
+        </header>
+
+        <div class="history-section">
+            {% if analyses %}
+                <div class="history-list">
+                    {% for analysis in analyses %}
+                        <div class="history-item">
+                            <div class="history-header">
+                                <span class="history-date">
+                                    {{ analysis.created_at.strftime('%B %d, %Y at %I:%M %p') }}
+                                </span>
+                                <span class="language-badge {{ analysis.detected_language.lower() }}">
+                                    {{ analysis.detected_language }}
+                                </span>
+                            </div>
+                            <div class="history-content">
+                                <div class="history-filename">
+                                    <strong>File:</strong> {{ analysis.filename }}
+                                </div>
+                                <div class="history-preview">
+                                    <strong>Code Preview:</strong>
+                                    <pre class="code-preview">{{ analysis.extracted_code[:200] }}{% if analysis.extracted_code|length > 200 %}...{% endif %}</pre>
+                                </div>
+                            </div>
+                            <div class="history-actions">
+                                <a href="{{ url_for('view_analysis', analysis_id=analysis.id) }}" class="view-btn">
+                                    View Analysis
+                                </a>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="no-history">
+                    <h3>No analysis history yet</h3>
+                    <p>Upload an image of code to get started!</p>
+                    <a href="{{ url_for('index') }}" class="btn-primary">Upload Code Image</a>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</body>
+</html>

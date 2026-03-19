@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Analysis Results - Glymphix</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="header-top">
+                <h1><i class="fas fa-code"></i> Code Analysis Results</h1>
+                <div class="user-menu">
+                    {% if current_user.is_authenticated %}
+                        <div class="user-info">
+                            <img src="{{ current_user.profile_pic or 'https://ui-avatars.com/api/?name=' + current_user.username + '&size=32&background=667eea&color=fff' }}" alt="Profile" class="profile-pic">
+                            <span class="user-name">{{ current_user.name or current_user.username }}</span>
+                            <div class="dropdown">
+                                <a href="{{ url_for('dashboard') }}" class="dropdown-item"><i class="fas fa-tachometer-alt"></i> Dashboard</a>
+                                <a href="{{ url_for('profile') }}" class="dropdown-item"><i class="fas fa-user"></i> Profile</a>
+                                <a href="{{ url_for('history') }}" class="dropdown-item"><i class="fas fa-history"></i> History</a>
+                                <div class="dropdown-divider"></div>
+                                <a href="{{ url_for('logout') }}" class="dropdown-item logout"><i class="fas fa-sign-out-alt"></i> Logout</a>
+                            </div>
+                        </div>
+                    {% else %}
+                        <a href="{{ url_for('index') }}" class="back-btn">
+                            <i class="fas fa-home"></i> Back to Home
+                        </a>
+                    {% endif %}
+                </div>
+            </div>
+            <a href="{{ url_for('dashboard') }}" class="back-btn" style="margin-top: 10px;">
+                <i class="fas fa-arrow-left"></i> Back to Dashboard
+            </a>
+        </header>
+
+        <div class="language-banner {{ 'python' if language == 'Python' else 'dart' if language == 'Dart' else 'unknown' }}">
+            <i class="fas fa-{% if language == 'Python' %}fab fa-python{% elif language == 'Dart' %}fas fa-code{% else %}fa-question{% endif %}"></i>
+            <strong>Detected Language:</strong> {{ language }}
+        </div>
+
+        <div class="results-grid">
+            <!-- Extracted Code Section -->
+            <div class="result-section">
+                <h2><i class="fas fa-file-code"></i> Extracted Code</h2>
+                <div class="code-container language-{{ language.lower() }}">
+                    <pre><code>{{ code if code else 'No code could be extracted from the image.' }}</code></pre>
+                </div>
+                
+                {% if analysis and analysis.filename %}
+                <div class="file-info">
+                    <p><i class="fas fa-image"></i> <strong>Filename:</strong> {{ analysis.filename }}</p>
+                    <p><i class="fas fa-calendar"></i> <strong>Analyzed:</strong> {{ analysis.created_at.strftime('%B %d, %Y at %I:%M %p') }}</p>
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Analysis Section -->
+            <div class="analysis-section">
+                <h2><i class="fas fa-clipboard-check"></i> Analysis & Feedback</h2>
+                
+                {% if feedback %}
+                <div class="feedback-section">
+                    <h3><i class="fas fa-check-circle" style="color: #28a745;"></i> Key Findings</h3>
+                    {% for item in feedback %}
+                        <div class="feedback-item">{{ item }}</div>
+                    {% endfor %}
+                </div>
+                {% endif %}
+
+                {% if warnings %}
+                <div class="warnings-section">
+                    <h3><i class="fas fa-exclamation-triangle" style="color: #ffc107;"></i> Warnings</h3>
+                    {% for warning in warnings %}
+                        <div class="warning-item">{{ warning }}</div>
+                    {% endfor %}
+                </div>
+                {% endif %}
+
+                {% if suggestions %}
+                <div class="suggestions-section">
+                    <h3><i class="fas fa-lightbulb" style="color: #17a2b8;"></i> Suggestions</h3>
+                    {% for suggestion in suggestions %}
+                        <div class="suggestion-item">{{ suggestion }}</div>
+                    {% endfor %}
+                </div>
+                {% endif %}
+
+                {% if not feedback and not warnings and not suggestions %}
+                <div class="no-issues">
+                    <i class="fas fa-check-circle fa-3x" style="color: #28a745; margin-bottom: 15px;"></i>
+                    <h3>No Issues Detected</h3>
+                    <p>Your code looks good! Review the extracted code for accuracy.</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="action-buttons">
+            <button onclick="copyCode()" class="copy-btn">
+                <i class="fas fa-copy"></i> Copy Code to Clipboard
+            </button>
+            
+            {% if current_user.is_authenticated and analysis %}
+            <button onclick="openInVSCode()" class="share-btn">
+                <i class="fas fa-code"></i> Open in VS Code
+            </button>
+            {% endif %}
+            
+            <a href="{{ url_for('dashboard') }}" class="new-analysis-btn">
+                <i class="fas fa-upload"></i> New Analysis
+            </a>
+        </div>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <div class="flash-messages">
+                    {% for category, message in messages %}
+                        <div class="flash {{ category }}">
+                            <i class="fas fa-{% if category == 'success' %}check-circle{% elif category == 'error' %}exclamation-circle{% elif category == 'warning' %}exclamation-triangle{% else %}info-circle{% endif %}"></i>
+                            {{ message }}
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+
+        <footer>
+            <div class="footer-content">
+                <p>&copy; 2026 Glymphix Developed by Studyholics. All rights reserved.</p>
+                <div class="footer-links">
+                    <a href="#">Privacy Policy</a>
+                    <a href="#">Terms of Service</a>
+                    <a href="#">Contact</a>
+                </div>
+            </div>
+        </footer>
+    </div>
+
+    <script>
+        // Raw extracted code passed from Flask
+        const extractedCode = {{ code | tojson }};
+
+        // Detect file extension from language
+        const language = {{ language | tojson }};
+        const ext = language === 'Python' ? 'py' : language === 'Dart' ? 'dart' : 'txt';
+        const filename = `extracted_code.${ext}`;
+
+        function copyCode() {
+            navigator.clipboard.writeText(extractedCode).then(function() {
+                const btn = document.querySelector('.copy-btn');
+                btn.innerHTML = '<i class="fas fa-check"></i> Copied!';
+                setTimeout(() => btn.innerHTML = '<i class="fas fa-copy"></i> Copy Code to Clipboard', 2000);
+            }, function(err) {
+                alert('Failed to copy: ' + err);
+            });
+        }
+
+        function openInVSCode() {
+            // Encode the code as a base64 data URI and open in vscode.dev
+            // vscode.dev supports opening files via a gist or untitled editor.
+            // The cleanest approach without a backend is to write to a
+            // temporary Blob URL, but since vscode.dev can't read local blobs,
+            // we use the vscode.dev/?vscode-coi untitled file trick instead:
+            // open vscode.dev with the code in the URL hash as a data URI.
+
+            const encoded = btoa(unescape(encodeURIComponent(extractedCode)));
+
+            // Try desktop VS Code first via vscode:// URI scheme.
+            // If not installed, fall back to vscode.dev in the browser.
+            const desktopUri = `vscode://file/untitled:${filename}`;
+
+            // vscode.dev doesn't support opening arbitrary content via URL alone,
+            // so we create a downloadable file and then open vscode.dev side by side.
+            // Best available approach: open vscode.dev and copy to clipboard
+            // so the user can paste into a new file (Ctrl+N).
+
+            // Step 1 — copy code to clipboard silently
+            navigator.clipboard.writeText(extractedCode).then(() => {
+                // Step 2 — open vscode.dev in a new tab
+                window.open('https://vscode.dev', '_blank');
+
+                // Step 3 — show a brief instruction toast
+                showToast(
+                    `Code copied! In VS Code web: press Ctrl+N for a new file, then Ctrl+V to paste. Save as ${filename}.`
+                );
+            }).catch(() => {
+                // Clipboard blocked — just open vscode.dev and ask the user to copy manually
+                window.open('https://vscode.dev', '_blank');
+                showToast('Could not copy automatically. Use the Copy button first, then paste into VS Code.');
+            });
+        }
+
+        function showToast(message) {
+            let toast = document.getElementById('vscode-toast');
+            if (!toast) {
+                toast = document.createElement('div');
+                toast.id = 'vscode-toast';
+                toast.style.cssText = `
+                    position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%);
+                    background: #1e1e1e; color: #fff; padding: 14px 22px;
+                    border-radius: 8px; font-size: 0.9rem; max-width: 480px;
+                    text-align: center; z-index: 9999; line-height: 1.5;
+                    box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+                `;
+                document.body.appendChild(toast);
+            }
+            toast.textContent = message;
+            toast.style.display = 'block';
+            clearTimeout(toast._timer);
+            toast._timer = setTimeout(() => toast.style.display = 'none', 6000);
+        }
+    </script>
+
+    <style>
+        /* Modal Styles - Add to your CSS file later */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+            animation: fadeIn 0.3s ease;
+        }
+
+        .modal-content {
+            background-color: white;
+            margin: 15% auto;
+            padding: 30px;
+            border-radius: 15px;
+            width: 90%;
+            max-width: 500px;
+            box-shadow: 0 5px 30px rgba(0,0,0,0.3);
+            position: relative;
+            animation: slideInDown 0.3s ease;
+        }
+
+        .close {
+            position: absolute;
+            right: 20px;
+            top: 15px;
+            font-size: 28px;
+            font-weight: bold;
+            color: #6c757d;
+            cursor: pointer;
+            transition: color 0.3s ease;
+        }
+
+        .close:hover {
+            color: #333;
+        }
+
+        .share-link-container {
+            display: flex;
+            gap: 10px;
+            margin: 20px 0;
+        }
+
+        .share-link-container input {
+            flex: 1;
+            padding: 10px;
+            border: 2px solid #e9ecef;
+            border-radius: 5px;
+            font-size: 0.9rem;
+        }
+
+        .copy-btn-small {
+            padding: 10px 15px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .copy-btn-small:hover {
+            background: #5a67d8;
+            transform: translateY(-2px);
+        }
+
+        .file-info {
+            margin-top: 20px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            color: #6c757d;
+        }
+
+        .file-info p {
+            margin: 5px 0;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        @keyframes slideInDown {
+            from {
+                transform: translateY(-50px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+    </style>
+</body>
+</html>

@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Profile</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="header-top">
+                <h1>User Profile</h1>
+                <a href="{{ url_for('index') }}" class="back-btn">← Back to Home</a>
+            </div>
+        </header>
+
+        <div class="profile-section">
+            <div class="profile-card">
+                <img src="{{ user.profile_pic }}" alt="Profile Picture" class="profile-pic-large">
+                <h2>{{ user.name }}</h2>
+                <p class="user-email">{{ user.email }}</p>
+                <p class="member-since">Member since: {{ user.created_at.strftime('%B %d, %Y') }}</p>
+                <div class="profile-stats">
+                    <div class="stat">
+                        <span class="stat-value">{{ analyses|length }}</span>
+                        <span class="stat-label">Analyses</span>
+                    </div>
+                </div>
+                <div class="profile-actions">
+                    <a href="{{ url_for('history') }}" class="btn-primary">View History</a>
+                    <a href="{{ url_for('logout') }}" class="btn-secondary">Logout</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

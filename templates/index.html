@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Glymphix</title>
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='logo.jpg') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+
+    <style>
+        /* ── Loading overlay ─────────────────────────────────────────── */
+        #loading-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.55);
+            z-index: 9999;
+            align-items: center;
+            justify-content: center;
+        }
+        #loading-overlay.active { display: flex; }
+
+        .loading-card {
+            background: white;
+            border-radius: 12px;
+            padding: 36px 44px;
+            text-align: center;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.25);
+            max-width: 320px;
+            width: 90%;
+        }
+        .spinner {
+            width: 52px; height: 52px;
+            border: 5px solid #e0e0e0;
+            border-top-color: #667eea;
+            border-radius: 50%;
+            animation: spin 0.9s linear infinite;
+            margin: 0 auto 20px;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        .loading-title { font-size: 17px; font-weight: bold; color: #222; margin-bottom: 8px; }
+        .loading-status { font-size: 13px; color: #666; min-height: 18px; transition: opacity 0.3s; }
+        .loading-dots span {
+            display: inline-block; width: 7px; height: 7px;
+            background: #667eea; border-radius: 50%;
+            margin: 14px 3px 0;
+            animation: bounce 1.2s infinite ease-in-out;
+        }
+        .loading-dots span:nth-child(2) { animation-delay: 0.2s; }
+        .loading-dots span:nth-child(3) { animation-delay: 0.4s; }
+        @keyframes bounce {
+            0%, 80%, 100% { transform: scale(0.6); opacity: 0.4; }
+            40%            { transform: scale(1.0); opacity: 1;   }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="header-top">
+<h1>Glymphix</h1>
+                <div class="user-menu">
+
+                    {% if current_user.is_authenticated %}
+                        <div class="user-info">
+                            <img src="{{ current_user.profile_pic or 'https://ui-avatars.com/api/?name=' + current_user.username + '&size=32&background=667eea&color=fff' }}" alt="Profile" class="profile-pic">
+                            <span class="user-name">{{ current_user.name or current_user.username }}</span>
+                            <div class="dropdown">
+                                <a href="{{ url_for('dashboard') }}" class="dropdown-item">
+                                    <i class="fas fa-tachometer-alt"></i> Dashboard
+                                </a>
+                                <a href="{{ url_for('profile') }}" class="dropdown-item">
+                                    <i class="fas fa-user"></i> Profile
+                                </a>
+                                <a href="{{ url_for('history') }}" class="dropdown-item">
+                                    <i class="fas fa-history"></i> History
+                                </a>
+                                <div class="dropdown-divider"></div>
+                                <a href="{{ url_for('logout') }}" class="dropdown-item logout">
+                                    <i class="fas fa-sign-out-alt"></i> Logout
+                                </a>
+                            </div>
+                        </div>
+                    {% else %}
+                        <div class="auth-buttons">
+                            <a href="{{ url_for('login_page') }}" class="login-btn">
+                                <i class="fas fa-sign-in-alt"></i>
+                                Sign In
+                            </a>
+                            <a href="{{ url_for('register_page') }}" class="register-btn">
+                                <i class="fas fa-user-plus"></i>
+                                Sign Up
+                            </a>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+            <p class="header-subtitle">Upload an image of handwritten or printed code and get instant feedback</p>
+        </header>
+
+        {% if not current_user.is_authenticated %}
+        <div class="welcome-section">
+            <div class="welcome-card">
+                <h2>Welcome to Code Image to Text Converter! 👋</h2>
+                <p>Please login or create an account to start converting your code images.</p>
+                <div class="welcome-buttons">
+                    <a href="{{ url_for('login_page') }}" class="btn-primary">
+                        <i class="fas fa-sign-in-alt"></i> Login
+                    </a>
+                    <a href="{{ url_for('register_page') }}" class="btn-secondary">
+                        <i class="fas fa-user-plus"></i> Create Account
+                    </a>
+                    <a href="{{ url_for('google_login') }}" class="btn-google">
+                        <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google">
+                        Continue with Google
+                    </a>
+                </div>
+            </div>
+        </div>
+        {% else %}
+        <div class="quick-actions">
+            <div class="quick-actions-card">
+                <h2><i class="fas fa-rocket"></i> Quick Actions</h2>
+                <div class="action-grid">
+                    <a href="#upload-section" class="action-item" onclick="document.getElementById('file').click(); return false;">
+                        <i class="fas fa-cloud-upload-alt"></i>
+                        <span>Upload New Image</span>
+                    </a>
+                    <a href="{{ url_for('history') }}" class="action-item">
+                        <i class="fas fa-history"></i>
+                        <span>View History</span>
+                    </a>
+                    <a href="{{ url_for('profile') }}" class="action-item">
+                        <i class="fas fa-cog"></i>
+                        <span>Settings</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <div id="upload-section" class="upload-section">
+            <h2 class="section-title">
+                <i class="fas fa-upload"></i> 
+                {% if current_user.is_authenticated %}
+                    Upload Code Image
+                {% else %}
+                    Sign In to Upload Images
+                {% endif %}
+            </h2>
+            
+            {% if current_user.is_authenticated %}
+            <form action="/upload" method="post" enctype="multipart/form-data" class="upload-form">
+                <div class="file-input-container">
+                    <input type="file" id="file" name="file" accept=".png,.jpg,.jpeg,.gif" required>
+                    <label for="file" class="file-label">
+                        <span class="file-button">Choose Image</span>
+                        <span class="file-name">No file chosen</span>
+                    </label>
+                </div>
+                
+                <div class="supported-formats">
+                    <p><i class="fas fa-info-circle"></i> Supported formats: PNG, JPG, JPEG, GIF (Max 16MB)</p>
+                </div>
+
+                <button type="submit" class="submit-btn">
+                    <i class="fas fa-code"></i>
+                    Analyze Code
+                </button>
+            </form>
+            {% else %}
+            <div class="login-prompt">
+                <i class="fas fa-lock fa-3x"></i>
+                <h3>Authentication Required</h3>
+                <p>Please sign in or create an account to upload images and analyze code.</p>
+                <div class="prompt-buttons">
+                    <a href="{{ url_for('login_page') }}" class="btn-primary">Sign In</a>
+                    <a href="{{ url_for('register_page') }}" class="btn-secondary">Create Account</a>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        <div class="features">
+            <h2><i class="fas fa-star"></i> Features</h2>
+            <div class="feature-grid">
+                <div class="feature-card">
+                    <div class="feature-icon">📷</div>
+                    <h3>Image to Text</h3>
+                    <p>Convert images of code to editable text using advanced OCR technology</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">🔍</div>
+                    <h3>Code Analysis</h3>
+                    <p>Detect common programming mistakes and syntax errors automatically</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">💡</div>
+                    <h3>Smart Feedback</h3>
+                    <p>Get personalized suggestions to improve your code quality</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">📊</div>
+                    <h3>History Tracking</h3>
+                    <p>Save and review your past code analyses anytime</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">🔗</div>
+                    <h3>Share Results</h3>
+                    <p>Generate shareable links for your code analyses</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">🎨</div>
+                    <h3>Syntax Highlighting</h3>
+                    <p>View extracted code with proper syntax highlighting</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="how-it-works">
+            <h2><i class="fas fa-cogs"></i> How It Works</h2>
+            <div class="steps-grid">
+                <div class="step">
+                    <div class="step-number">1</div>
+                    <h3>Sign In</h3>
+                    <p>Create an account or sign in with Google</p>
+                </div>
+                <div class="step">
+                    <div class="step-number">2</div>
+                    <h3>Upload Image</h3>
+                    <p>Take a photo or upload a screenshot of code</p>
+                </div>
+                <div class="step">
+                    <div class="step-number">3</div>
+                    <h3>Extract Text</h3>
+                    <p>Our OCR engine converts image to text</p>
+                </div>
+                <div class="step">
+                    <div class="step-number">4</div>
+                    <h3>Get Analysis</h3>
+                    <p>Receive feedback and suggestions</p>
+                </div>
+            </div>
+        </div>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <div class="flash-messages">
+                    {% for category, message in messages %}
+                        <div class="flash {{ category }}">
+                            <i class="fas fa-{% if category == 'success' %}check-circle{% elif category == 'error' %}exclamation-circle{% elif category == 'warning' %}exclamation-triangle{% else %}info-circle{% endif %}"></i>
+                            {{ message }}
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+
+        <footer>
+            <div class="footer-content">
+                <p>&copy; 2026 Code Image to Text Converter Developed by Bryan Corsino. All rights reserved.</p>
+                <div class="footer-links">
+                    <a href="#">Privacy Policy</a>
+                    <a href="#">Terms of Service</a>
+                    <a href="#">Contact</a>
+                </div>
+            </div>
+        </footer>
+    </div>
+
+    <div id="loading-overlay" role="status" aria-live="polite">
+        <div class="loading-card">
+            <div class="spinner"></div>
+            <div class="loading-title">Analysing Code…</div>
+            <div class="loading-status" id="loading-status-text">Uploading image</div>
+            <div class="loading-dots"><span></span><span></span><span></span></div>
+        </div>
+    </div>
+
+    <script>
+        // Update file name display
+        document.getElementById('file')?.addEventListener('change', function(e) {
+            const fileName = this.files[0] ? this.files[0].name : 'No file chosen';
+            const fileNameElement = document.querySelector('.file-name');
+            if (fileNameElement) {
+                fileNameElement.textContent = fileName;
+            }
+        });
+
+        // Smooth scroll for anchor links
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({ behavior: 'smooth' });
+                }
+            });
+        });
+
+        // ── Loading overlay ──────────────────────────────────────────────
+        (function () {
+            var messages = [
+                "Uploading image",
+                "Preprocessing — removing ruled lines",
+                "Running OCR engine",
+                "Scoring preprocessing variants",
+                "Applying handwriting fixes",
+                "Extracting code structure",
+                "Almost done…"
+            ];
+            var overlay    = document.getElementById('loading-overlay');
+            var statusText = document.getElementById('loading-status-text');
+            var msgIndex = 0, timer = null;
+
+            function cycleMessage() {
+                msgIndex = Math.min(msgIndex + 1, messages.length - 1);
+                statusText.style.opacity = '0';
+                setTimeout(function () {
+                    statusText.textContent = messages[msgIndex];
+                    statusText.style.opacity = '1';
+                }, 200);
+            }
+
+            var uploadForm = document.querySelector('form.upload-form');
+            if (uploadForm) {
+                uploadForm.addEventListener('submit', function () {
+                    var fileInput = uploadForm.querySelector('input[type=file]');
+                    if (fileInput && fileInput.files && fileInput.files.length > 0) {
+                        msgIndex = 0;
+                        statusText.textContent = messages[0];
+                        overlay.classList.add('active');
+                        timer = setInterval(cycleMessage, 2500);
+                    }
+                });
+            }
+
+            window.addEventListener('pageshow', function () {
+                overlay.classList.remove('active');
+                if (timer) { clearInterval(timer); timer = null; }
+            });
+        }());
+    </script>
+</body>
+</html>
