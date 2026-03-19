@@ -1,0 +1,39 @@
+# ─── Web framework ────────────────────────────────────────────────────────────
+flask==2.3.3
+flask-login
+flask-sqlalchemy
+flask-migrate
+# Pinned below 3.x: app imports werkzeug.urls.url_parse which was removed in
+# Werkzeug 3.0.  Remove the pin (and the import) when migrating to 3.x.
+werkzeug==2.3.8
+
+# ─── OAuth ────────────────────────────────────────────────────────────────────
+authlib
+
+# ─── Production server ────────────────────────────────────────────────────────
+waitress
+
+# ─── OCR engines ──────────────────────────────────────────────────────────────
+pytesseract
+rapidocr-onnxruntime
+easyocr                     # was missing — used by easyocr_processor.py
+
+# ─── Image processing ─────────────────────────────────────────────────────────
+opencv-python
+numpy
+Pillow
+
+# ─── Vision-language model (Qwen2-VL) ─────────────────────────────────────────
+# Required by qwen2vl_processor.py.  All three packages were missing.
+torch
+transformers>=4.45.0        # Qwen2VLForConditionalGeneration needs >= 4.45
+accelerate                  # required by transformers for device dispatch
+qwen-vl-utils               # process_vision_info helper used in qwen2vl_processor
+
+# ─── Environment ──────────────────────────────────────────────────────────────
+python-dotenv
+
+# ─── Notes (not pip-installable) ──────────────────────────────────────────────
+# Tesseract binary (Windows):  https://github.com/UB-Mannheim/tesseract/wiki
+# Tesseract binary (Linux):    sudo apt install tesseract-ocr
+# Tesseract binary (macOS):    brew install tesseract
