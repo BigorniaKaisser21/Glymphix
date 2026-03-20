@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Verify Your Email - Glymphix</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        /* ── OTP-specific styles (add to style.css if you prefer) ── */
+        .otp-inputs {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin: 24px 0 8px;
+        }
+
+        .otp-inputs input {
+            width: 52px;
+            height: 60px;
+            text-align: center;
+            font-size: 1.6rem;
+            font-weight: bold;
+            border: 2px solid #e2e8f0;
+            border-radius: 10px;
+            outline: none;
+            transition: border-color 0.2s, box-shadow 0.2s;
+            caret-color: transparent;
+        }
+
+        .otp-inputs input:focus {
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.18);
+        }
+
+        .otp-inputs input.filled {
+            border-color: #667eea;
+            background: #f0f3ff;
+        }
+
+        .otp-inputs input.error {
+            border-color: #e53e3e;
+            background: #fff5f5;
+            animation: shake 0.35s ease;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25%       { transform: translateX(-5px); }
+            75%       { transform: translateX(5px); }
+        }
+
+        .otp-hint {
+            font-size: 0.82rem;
+            color: #718096;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .otp-email-display {
+            background: #f7f8ff;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 10px 16px;
+            text-align: center;
+            font-size: 0.92rem;
+            color: #4a5568;
+            margin-bottom: 20px;
+        }
+
+        .otp-email-display strong {
+            color: #667eea;
+        }
+
+        .resend-row {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            margin-top: 18px;
+            font-size: 0.88rem;
+            color: #718096;
+        }
+
+        .resend-btn {
+            background: none;
+            border: none;
+            color: #667eea;
+            font-weight: 600;
+            cursor: pointer;
+            padding: 0;
+            font-size: 0.88rem;
+            text-decoration: underline;
+        }
+
+        .resend-btn:disabled {
+            color: #a0aec0;
+            cursor: not-allowed;
+            text-decoration: none;
+        }
+
+        #countdown {
+            font-weight: 600;
+            color: #667eea;
+            min-width: 28px;
+            display: inline-block;
+        }
+
+        /* Hidden real input that holds the assembled OTP value */
+        #otp-hidden {
+            display: none;
+        }
+
+        .expiry-note {
+            text-align: center;
+            font-size: 0.8rem;
+            color: #a0aec0;
+            margin-top: 6px;
+        }
+
+        .expiry-note i {
+            margin-right: 4px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="header-top">
+                <h1>Glymphix</h1>
+                <a href="{{ url_for('index') }}" class="back-btn">
+                    <i class="fas fa-arrow-left"></i> Back to Home
+                </a>
+            </div>
+        </header>
+
+        <div class="auth-container">
+            <div class="auth-card">
+                <div class="auth-header">
+                    <h2><i class="fas fa-shield-alt"></i> Verify Your Email</h2>
+                    <p>We sent a 6-digit code to your email address</p>
+                </div>
+
+                <!-- Shows which email the code was sent to -->
+                <div class="otp-email-display">
+                    Code sent to <strong>{{ email }}</strong>
+                </div>
+
+                <form method="POST" action="{{ url_for('verify_otp') }}" class="auth-form" id="otp-form">
+                    <!-- Hidden field that receives the assembled 6-digit OTP -->
+                    <input type="hidden" name="otp" id="otp-hidden">
+
+                    <!-- 6 individual digit boxes -->
+                    <div class="otp-inputs">
+                        <input type="text" inputmode="numeric" maxlength="1" class="otp-box" autocomplete="off" aria-label="OTP digit 1">
+                        <input type="text" inputmode="numeric" maxlength="1" class="otp-box" autocomplete="off" aria-label="OTP digit 2">
+                        <input type="text" inputmode="numeric" maxlength="1" class="otp-box" autocomplete="off" aria-label="OTP digit 3">
+                        <input type="text" inputmode="numeric" maxlength="1" class="otp-box" autocomplete="off" aria-label="OTP digit 4">
+                        <input type="text" inputmode="numeric" maxlength="1" class="otp-box" autocomplete="off" aria-label="OTP digit 5">
+                        <input type="text" inputmode="numeric" maxlength="1" class="otp-box" autocomplete="off" aria-label="OTP digit 6">
+                    </div>
+
+                    <p class="otp-hint">Enter each digit in its own box</p>
+
+                    <button type="submit" class="btn-submit" id="verify-btn" disabled>
+                        <i class="fas fa-check-circle"></i> Verify Code
+                    </button>
+
+                    <p class="expiry-note">
+                        <i class="fas fa-clock"></i> Code expires in 10 minutes
+                    </p>
+                </form>
+
+                <!-- Resend section -->
+                <div class="resend-row">
+                    <span>Didn't receive it?</span>
+                    <form method="POST" action="{{ url_for('resend_otp') }}" style="display:inline;">
+                        <button type="submit" class="resend-btn" id="resend-btn" disabled>
+                            Resend code
+                        </button>
+                    </form>
+                    <span>in <span id="countdown">60</span>s</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Flash messages -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <div class="flash-messages">
+                    {% for category, message in messages %}
+                        <div class="flash {{ category }}">
+                            <i class="fas fa-{% if category == 'success' %}check-circle{% elif category == 'error' %}exclamation-circle{% elif category == 'warning' %}exclamation-triangle{% else %}info-circle{% endif %}"></i>
+                            {{ message }}
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+    </div>
+
+    <script>
+        const boxes = Array.from(document.querySelectorAll('.otp-box'));
+        const hiddenInput = document.getElementById('otp-hidden');
+        const verifyBtn  = document.getElementById('verify-btn');
+        const resendBtn  = document.getElementById('resend-btn');
+        const countdown  = document.getElementById('countdown');
+
+        // ── Box interaction ──────────────────────────────────────────────────
+        boxes.forEach((box, i) => {
+            box.addEventListener('input', (e) => {
+                // Allow digits only
+                box.value = box.value.replace(/\D/g, '').slice(-1);
+                box.classList.toggle('filled', box.value !== '');
+
+                // Auto-advance
+                if (box.value && i < boxes.length - 1) {
+                    boxes[i + 1].focus();
+                }
+
+                syncHidden();
+            });
+
+            box.addEventListener('keydown', (e) => {
+                // Backspace moves focus back
+                if (e.key === 'Backspace' && !box.value && i > 0) {
+                    boxes[i - 1].focus();
+                    boxes[i - 1].value = '';
+                    boxes[i - 1].classList.remove('filled');
+                    syncHidden();
+                }
+
+                // Allow pasting via Ctrl+V into the first box
+                if ((e.ctrlKey || e.metaKey) && e.key === 'v') return;
+
+                // Block non-numeric keys (but allow control keys)
+                if (e.key.length === 1 && !/\d/.test(e.key)) {
+                    e.preventDefault();
+                }
+            });
+
+            // Handle paste on any box — fills all 6 digits
+            box.addEventListener('paste', (e) => {
+                e.preventDefault();
+                const pasted = (e.clipboardData || window.clipboardData)
+                    .getData('text')
+                    .replace(/\D/g, '')
+                    .slice(0, 6);
+
+                pasted.split('').forEach((ch, j) => {
+                    if (boxes[j]) {
+                        boxes[j].value = ch;
+                        boxes[j].classList.add('filled');
+                    }
+                });
+
+                // Focus the box after the last filled one
+                const next = Math.min(pasted.length, boxes.length - 1);
+                boxes[next].focus();
+                syncHidden();
+            });
+        });
+
+        // Auto-focus first box on page load
+        boxes[0].focus();
+
+        // ── Sync the 6 digits into the hidden input ──────────────────────────
+        function syncHidden() {
+            const otp = boxes.map(b => b.value).join('');
+            hiddenInput.value = otp;
+            verifyBtn.disabled = otp.length < 6;
+        }
+
+        // ── Shake animation on server-side error ─────────────────────────────
+        // If the page reloads with an error flash message, shake all boxes
+        const hasError = document.querySelector('.flash.error');
+        if (hasError) {
+            boxes.forEach(b => {
+                b.classList.add('error');
+                b.value = '';
+                b.classList.remove('filled');
+            });
+            hiddenInput.value = '';
+            verifyBtn.disabled = true;
+            boxes[0].focus();
+            // Remove error class after animation
+            setTimeout(() => boxes.forEach(b => b.classList.remove('error')), 500);
+        }
+
+        // ── Resend countdown ─────────────────────────────────────────────────
+        let seconds = 60;
+        const timer = setInterval(() => {
+            seconds--;
+            countdown.textContent = seconds;
+            if (seconds <= 0) {
+                clearInterval(timer);
+                resendBtn.disabled = false;
+                countdown.textContent = '';
+                document.querySelector('.resend-row span:last-child').textContent = '';
+            }
+        }, 1000);
+    </script>
+</body>
+</html>
