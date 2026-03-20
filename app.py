@@ -22,7 +22,10 @@ except ImportError:
 import pytesseract
 import re
 import json
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
+import random
+import string
+from flask_mail import Mail, Message
 from werkzeug.utils import secure_filename
 import logging
 from dotenv import load_dotenv
@@ -51,6 +54,15 @@ if not _secret_key:
         "before deploying to production!"
     )
 app.secret_key = _secret_key
+
+# Flask-Mail configuration
+app.config['MAIL_SERVER'] = 'smtp.gmail.com'
+app.config['MAIL_PORT'] = 587
+app.config['MAIL_USE_TLS'] = True
+app.config['MAIL_USERNAME'] = os.getenv('MAIL_USERNAME')
+app.config['MAIL_PASSWORD'] = os.getenv('MAIL_PASSWORD')
+app.config['MAIL_DEFAULT_SENDER'] = os.getenv('MAIL_USERNAME')
+mail = Mail(app)
 
 # Database configuration
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///users.db'
@@ -846,6 +858,35 @@ def analyze_code(code):
     }
 
 
+# ============= OTP HELPER =============
+
+def send_otp_email(user_email):
+    """Generate a 6-digit OTP, store it in session, and email it to the user."""
+    otp = ''.join(random.choices(string.digits, k=6))
+    expiry = datetime.now(timezone.utc) + timedelta(minutes=10)
+    session['otp'] = otp
+    session['otp_expiry'] = expiry.isoformat()
+    session['otp_email'] = user_email
+    session['otp_remember'] = session.get('otp_remember', False)
+
+    try:
+        msg = Message(
+            subject='Your Glymphix verification code',
+            recipients=[user_email]
+        )
+        msg.body = (
+            f"Your Glymphix one-time verification code is:\n\n"
+            f"  {otp}\n\n"
+            f"This code expires in 10 minutes.\n"
+            f"If you did not request this, please ignore this email."
+        )
+        mail.send(msg)
+        logger.info("OTP sent to %s", user_email)
+    except Exception as e:
+        logger.error("Failed to send OTP email to %s: %s", user_email, e)
+        raise
+
+
 # ============= AUTHENTICATION ROUTES =============
 
 @app.route('/')
@@ -898,17 +939,14 @@ def login_page():
             return redirect(url_for('login_page'))
 
         if user.check_password(password):
-            login_user(user, remember=remember)
-            user.last_login = datetime.now(timezone.utc)
-            db.session.commit()
-
-            next_page = request.args.get('next')
-            # Fix 3: use urlsplit instead of deprecated url_parse
-            if not next_page or urlsplit(next_page).netloc != '':
-                next_page = url_for('dashboard')
-
-            flash(f'Welcome back, {user.name or user.email}!', 'success')
-            return redirect(next_page)
+            # Store remember preference for after OTP verification
+            session['otp_remember'] = remember
+            try:
+                send_otp_email(user.email)
+                return redirect(url_for('verify_otp'))
+            except Exception:
+                flash('Could not send verification email. Check your MAIL settings.', 'error')
+                return redirect(url_for('login_page'))
         else:
             flash('Incorrect password. Please try again.', 'error')
 
@@ -959,12 +997,17 @@ def register_page():
         db.session.add(user)
         db.session.commit()
 
-        login_user(user)
-        user.last_login = datetime.now(timezone.utc)
-        db.session.commit()
-
-        flash(f'Welcome, {username}! Your account has been created successfully.', 'success')
-        return redirect(url_for('dashboard'))
+        session['otp_remember'] = False
+        try:
+            send_otp_email(email)
+            return redirect(url_for('verify_otp'))
+        except Exception:
+            # If mail fails, log the user in directly so registration still works
+            login_user(user)
+            user.last_login = datetime.now(timezone.utc)
+            db.session.commit()
+            flash(f'Welcome, {username}! (Email verification unavailable — check MAIL settings.)', 'warning')
+            return redirect(url_for('dashboard'))
 
     return render_template('register.html')
 
@@ -1027,6 +1070,66 @@ def authorize():
         logger.error(f"Authentication error: {e}")
         flash('Authentication failed. Please try again.', 'error')
         return redirect(url_for('login_page'))
+
+
+@app.route('/verify-otp', methods=['GET', 'POST'])
+def verify_otp():
+    """OTP verification — required after login and registration."""
+    email = session.get('otp_email')
+    if not email:
+        # No OTP session active — send back to login
+        return redirect(url_for('login_page'))
+
+    if request.method == 'POST':
+        entered = request.form.get('otp', '').strip()
+        stored  = session.get('otp')
+        expiry  = session.get('otp_expiry')
+
+        if not stored or not expiry:
+            flash('Session expired. Please log in again.', 'error')
+            return redirect(url_for('login_page'))
+
+        if datetime.fromisoformat(expiry) < datetime.now(timezone.utc):
+            flash('Code has expired. Please request a new one.', 'error')
+            return render_template('verify_otp.html', email=email)
+
+        if entered != stored:
+            flash('Incorrect code. Please try again.', 'error')
+            return render_template('verify_otp.html', email=email)
+
+        # ✅ OTP correct — clear OTP session data and finish login
+        remember = session.pop('otp_remember', False)
+        session.pop('otp', None)
+        session.pop('otp_expiry', None)
+        session.pop('otp_email', None)
+
+        user = User.query.filter_by(email=email).first()
+        if not user:
+            flash('Account not found. Please register again.', 'error')
+            return redirect(url_for('register_page'))
+
+        login_user(user, remember=remember)
+        user.last_login = datetime.now(timezone.utc)
+        db.session.commit()
+
+        flash(f'Welcome, {user.name or user.username}!', 'success')
+        return redirect(url_for('dashboard'))
+
+    return render_template('verify_otp.html', email=email)
+
+
+@app.route('/resend-otp', methods=['POST'])
+def resend_otp():
+    """Resend a fresh OTP to the same email address."""
+    email = session.get('otp_email')
+    if not email:
+        return redirect(url_for('login_page'))
+    try:
+        send_otp_email(email)
+        flash('A new verification code has been sent to your email.', 'success')
+    except Exception:
+        flash('Could not resend the code. Please try again later.', 'error')
+    return redirect(url_for('verify_otp'))
 
 
 @app.route('/logout')
