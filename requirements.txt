@@ -15,7 +15,6 @@ waitress
 # ─── OCR engines ──────────────────────────────────────────────────────────────
 pytesseract
 rapidocr-onnxruntime
-easyocr
  
 # ─── Image processing ─────────────────────────────────────────────────────────
 opencv-python
