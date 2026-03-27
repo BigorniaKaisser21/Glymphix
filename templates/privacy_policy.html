@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Privacy Policy - Glymphix</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        .policy-container {
+            max-width: 860px;
+            margin: 0 auto;
+            padding: 0 20px 60px;
+        }
+        .policy-hero {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #fff;
+            border-radius: 16px;
+            padding: 40px 40px 32px;
+            margin: 28px 0 36px;
+        }
+        .policy-hero h1 {
+            font-size: 1.9rem;
+            font-weight: 700;
+            margin: 0 0 8px;
+        }
+        .policy-hero p {
+            font-size: 0.95rem;
+            opacity: 0.88;
+            margin: 0;
+        }
+        .effective-badge {
+            display: inline-block;
+            background: rgba(255,255,255,0.2);
+            border-radius: 20px;
+            padding: 4px 14px;
+            font-size: 0.82rem;
+            margin-top: 14px;
+        }
+        .toc {
+            background: #f7f8ff;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 22px 28px;
+            margin-bottom: 36px;
+        }
+        .toc h3 {
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 0.07em;
+            color: #718096;
+            margin: 0 0 14px;
+        }
+        .toc ol {
+            margin: 0;
+            padding-left: 20px;
+            line-height: 2;
+        }
+        .toc a {
+            color: #667eea;
+            text-decoration: none;
+            font-size: 0.93rem;
+        }
+        .toc a:hover { text-decoration: underline; }
+        .policy-section {
+            margin-bottom: 40px;
+        }
+        .policy-section h2 {
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: #2d3748;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 10px;
+            margin-bottom: 18px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .policy-section h2 i {
+            color: #667eea;
+            font-size: 1rem;
+        }
+        .policy-section p, .policy-section li {
+            font-size: 0.95rem;
+            color: #4a5568;
+            line-height: 1.8;
+            margin-bottom: 10px;
+        }
+        .policy-section ul, .policy-section ol {
+            padding-left: 22px;
+            margin-bottom: 14px;
+        }
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 16px 0;
+            font-size: 0.9rem;
+        }
+        .data-table th {
+            background: #667eea;
+            color: #fff;
+            padding: 10px 14px;
+            text-align: left;
+            font-weight: 600;
+        }
+        .data-table td {
+            padding: 10px 14px;
+            border-bottom: 1px solid #e2e8f0;
+            color: #4a5568;
+            vertical-align: top;
+        }
+        .data-table tr:last-child td { border-bottom: none; }
+        .data-table tr:nth-child(even) td { background: #f7f8ff; }
+        .rights-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 14px;
+            margin: 18px 0;
+        }
+        .right-card {
+            background: #f7f8ff;
+            border: 1px solid #e2e8f0;
+            border-left: 3px solid #667eea;
+            border-radius: 8px;
+            padding: 14px 16px;
+        }
+        .right-card h4 {
+            font-size: 0.9rem;
+            font-weight: 700;
+            color: #2d3748;
+            margin: 0 0 6px;
+        }
+        .right-card p {
+            font-size: 0.85rem;
+            color: #718096;
+            margin: 0;
+            line-height: 1.5;
+        }
+        .highlight-box {
+            background: #ebf8ff;
+            border: 1px solid #bee3f8;
+            border-radius: 10px;
+            padding: 16px 20px;
+            margin: 16px 0;
+            font-size: 0.92rem;
+            color: #2c5282;
+        }
+        .highlight-box i { margin-right: 8px; }
+        .contact-card {
+            background: #f7f8ff;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 22px 26px;
+            margin-top: 12px;
+        }
+        .contact-card p { margin: 4px 0; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="header-top">
+                <h1>Glymphix</h1>
+                <a href="{{ url_for('index') }}" class="back-btn">
+                    <i class="fas fa-arrow-left"></i> Back to Home
+                </a>
+            </div>
+        </header>
+
+        <div class="policy-container">
+            <div class="policy-hero">
+                <h1><i class="fas fa-shield-alt"></i> Privacy Policy</h1>
+                <p>We are committed to protecting your personal data in accordance with the<br>
+                   <strong>Philippine Data Privacy Act of 2012 (Republic Act No. 10173)</strong>
+                   and its Implementing Rules and Regulations.</p>
+                <span class="effective-badge">
+                    <i class="fas fa-calendar-alt"></i> Effective: January 1, 2026 &nbsp;|&nbsp; Last updated: March 2026
+                </span>
+            </div>
+
+            <!-- Table of Contents -->
+            <div class="toc">
+                <h3><i class="fas fa-list"></i> Contents</h3>
+                <ol>
+                    <li><a href="#who-we-are">Who we are (Data Controller)</a></li>
+                    <li><a href="#what-we-collect">What personal data we collect</a></li>
+                    <li><a href="#how-we-use">How and why we use your data</a></li>
+                    <li><a href="#legal-basis">Legal basis for processing</a></li>
+                    <li><a href="#sharing">Who we share your data with</a></li>
+                    <li><a href="#retention">How long we keep your data</a></li>
+                    <li><a href="#security">How we protect your data</a></li>
+                    <li><a href="#your-rights">Your rights under RA 10173</a></li>
+                    <li><a href="#cookies">Cookies and session data</a></li>
+                    <li><a href="#children">Children's privacy</a></li>
+                    <li><a href="#changes">Changes to this policy</a></li>
+                    <li><a href="#contact">How to contact us / DPO</a></li>
+                </ol>
+            </div>
+
+            <!-- Section 1 -->
+            <div class="policy-section" id="who-we-are">
+                <h2><i class="fas fa-building"></i> 1. Who We Are (Data Controller)</h2>
+                <p><strong>Glymphix</strong> ("we", "our", "us") is a web application developed by <strong>Studyholics</strong> that converts images of handwritten or printed code into editable text using optical character recognition (OCR) technology.</p>
+                <p>As the personal information controller (PIC) under RA 10173, we are responsible for ensuring your personal data is collected, used, and protected lawfully.</p>
+                <div class="contact-card">
+                    <p><i class="fas fa-envelope"></i> <strong>Contact:</strong> privacy@glymphix.app</p>
+                    <p><i class="fas fa-map-marker-alt"></i> <strong>Address:</strong> Philippines</p>
+                </div>
+            </div>
+
+            <!-- Section 2 -->
+            <div class="policy-section" id="what-we-collect">
+                <h2><i class="fas fa-database"></i> 2. What Personal Data We Collect</h2>
+
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Category</th>
+                            <th>Data collected</th>
+                            <th>When</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>Account data</strong></td>
+                            <td>Full name, username, email address, hashed password</td>
+                            <td>On registration</td>
+                        </tr>
+                        <tr>
+                            <td><strong>OAuth data</strong></td>
+                            <td>Google account ID, email, display name, profile picture URL</td>
+                            <td>On Google Sign-In</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Uploaded images</strong></td>
+                            <td>Images of code you upload for OCR analysis</td>
+                            <td>On upload (deleted after processing)</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Analysis results</strong></td>
+                            <td>Extracted code text, detected language, feedback, warnings</td>
+                            <td>After each analysis</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Usage data</strong></td>
+                            <td>Login timestamps, analysis count per language</td>
+                            <td>Automatically during use</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Session data</strong></td>
+                            <td>Session ID cookie (encrypted), temporary OTP (in-session only)</td>
+                            <td>On login</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <div class="highlight-box">
+                    <i class="fas fa-info-circle"></i>
+                    <strong>Images are not permanently stored.</strong> Uploaded image files are deleted from our servers immediately after your analysis is saved. Only the extracted text result is retained.
+                </div>
+            </div>
+
+            <!-- Section 3 -->
+            <div class="policy-section" id="how-we-use">
+                <h2><i class="fas fa-cogs"></i> 3. How and Why We Use Your Data</h2>
+                <ul>
+                    <li><strong>Providing the service</strong> — creating and managing your account, performing OCR analysis, saving and displaying your results.</li>
+                    <li><strong>Authentication and security</strong> — verifying your identity via OTP email, preventing unauthorised access, detecting abuse.</li>
+                    <li><strong>Communications</strong> — sending OTP verification codes and password-reset codes to your email address.</li>
+                    <li><strong>Service improvement</strong> — understanding aggregate usage patterns to improve OCR accuracy (no individual profiling).</li>
+                    <li><strong>Legal compliance</strong> — retaining records as required by applicable Philippine law.</li>
+                </ul>
+                <p>We do <strong>not</strong> sell, rent, or trade your personal data to any third party for marketing purposes.</p>
+            </div>
+
+            <!-- Section 4 -->
+            <div class="policy-section" id="legal-basis">
+                <h2><i class="fas fa-gavel"></i> 4. Legal Basis for Processing</h2>
+                <p>Under Section 12 of RA 10173, we process your personal data on the following bases:</p>
+                <ul>
+                    <li><strong>Contract performance</strong> — processing necessary to deliver the Glymphix service you signed up for.</li>
+                    <li><strong>Consent</strong> — for optional data (e.g. Google Sign-In profile picture) and cookies. You may withdraw consent at any time.</li>
+                    <li><strong>Legitimate interest</strong> — security monitoring and fraud prevention, where your interests are not overridden.</li>
+                    <li><strong>Legal obligation</strong> — where processing is required by Philippine law.</li>
+                </ul>
+            </div>
+
+            <!-- Section 5 -->
+            <div class="policy-section" id="sharing">
+                <h2><i class="fas fa-share-alt"></i> 5. Who We Share Your Data With</h2>
+                <ul>
+                    <li><strong>Google LLC</strong> — if you use Google Sign-In, your authentication is handled by Google under their own privacy policy.</li>
+                    <li><strong>Email provider (Gmail SMTP)</strong> — used solely to deliver OTP and password-reset emails.</li>
+                    <li><strong>Hosting infrastructure</strong> — our servers store your data. We do not share identifiable data with cloud analytics services.</li>
+                </ul>
+                <p>We do not transfer personal data outside the Philippines except where necessary for the above services (Google, Gmail), which are covered by appropriate safeguards.</p>
+            </div>
+
+            <!-- Section 6 -->
+            <div class="policy-section" id="retention">
+                <h2><i class="fas fa-clock"></i> 6. How Long We Keep Your Data</h2>
+                <table class="data-table">
+                    <thead>
+                        <tr><th>Data type</th><th>Retention period</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td>Account information</td><td>Until you delete your account</td></tr>
+                        <tr><td>Analysis results</td><td>Until you delete them, or your account is deleted</td></tr>
+                        <tr><td>Uploaded image files</td><td>Deleted immediately after processing (not retained)</td></tr>
+                        <tr><td>OTP codes</td><td>10 minutes (session-only, then purged)</td></tr>
+                        <tr><td>Session cookies</td><td>Until logout or browser close (no persistent tracking)</td></tr>
+                        <tr><td>Server access logs</td><td>Up to 90 days for security purposes</td></tr>
+                    </tbody>
+                </table>
+                <p>Upon account deletion, all your personal data (account record, analyses, and any associated files) are permanently erased from our systems within 30 days.</p>
+            </div>
+
+            <!-- Section 7 -->
+            <div class="policy-section" id="security">
+                <h2><i class="fas fa-lock"></i> 7. How We Protect Your Data</h2>
+                <ul>
+                    <li><strong>Password hashing</strong> — passwords are stored using PBKDF2-SHA256 (via Werkzeug). We never store passwords in plaintext.</li>
+                    <li><strong>Encrypted transport</strong> — all data is transmitted over HTTPS with HSTS enforced.</li>
+                    <li><strong>Session security</strong> — session cookies are HttpOnly (not readable by JavaScript), SameSite=Lax (CSRF mitigation), and Secure (HTTPS only in production).</li>
+                    <li><strong>Rate limiting</strong> — login, OTP, and password-reset endpoints are rate-limited to prevent brute-force attacks.</li>
+                    <li><strong>OTP lockout</strong> — accounts are locked after 5 incorrect OTP attempts.</li>
+                    <li><strong>Access controls</strong> — users can only access their own analyses; server-side ownership checks are applied on every request.</li>
+                    <li><strong>Minimal retention</strong> — uploaded images are deleted immediately after processing.</li>
+                </ul>
+            </div>
+
+            <!-- Section 8 -->
+            <div class="policy-section" id="your-rights">
+                <h2><i class="fas fa-user-shield"></i> 8. Your Rights Under RA 10173</h2>
+                <p>As a data subject, you have the following rights under the Philippine Data Privacy Act (Section 16):</p>
+                <div class="rights-grid">
+                    <div class="right-card">
+                        <h4><i class="fas fa-bell"></i> Right to be informed</h4>
+                        <p>Know what data we collect, why, and how it is used — this Privacy Policy fulfils that right.</p>
+                    </div>
+                    <div class="right-card">
+                        <h4><i class="fas fa-eye"></i> Right of access</h4>
+                        <p>Request a copy of the personal data we hold about you by contacting our DPO.</p>
+                    </div>
+                    <div class="right-card">
+                        <h4><i class="fas fa-edit"></i> Right to correction</h4>
+                        <p>Update your name or username in your profile settings at any time.</p>
+                    </div>
+                    <div class="right-card">
+                        <h4><i class="fas fa-trash-alt"></i> Right to erasure</h4>
+                        <p>Delete your account and all associated data permanently via your Profile page.</p>
+                    </div>
+                    <div class="right-card">
+                        <h4><i class="fas fa-ban"></i> Right to object</h4>
+                        <p>Object to processing of your data for purposes beyond the core service by contacting us.</p>
+                    </div>
+                    <div class="right-card">
+                        <h4><i class="fas fa-hand-paper"></i> Right to data portability</h4>
+                        <p>Request an export of your analysis history. Contact our DPO to request this.</p>
+                    </div>
+                    <div class="right-card">
+                        <h4><i class="fas fa-undo"></i> Right to withdraw consent</h4>
+                        <p>Withdraw consent for optional processing at any time without affecting past processing.</p>
+                    </div>
+                    <div class="right-card">
+                        <h4><i class="fas fa-exclamation-circle"></i> Right to lodge a complaint</h4>
+                        <p>File a complaint with the National Privacy Commission (NPC) at <a href="https://www.privacy.gov.ph" target="_blank">privacy.gov.ph</a>.</p>
+                    </div>
+                </div>
+                <p style="margin-top:16px;">To exercise any of these rights, email us at <strong>privacy@glymphix.app</strong> with the subject line "Data Subject Request". We will respond within 15 business days.</p>
+            </div>
+
+            <!-- Section 9 -->
+            <div class="policy-section" id="cookies">
+                <h2><i class="fas fa-cookie-bite"></i> 9. Cookies and Session Data</h2>
+                <p>We use a single essential session cookie (<code>session</code>) to keep you logged in. This cookie:</p>
+                <ul>
+                    <li>Is <strong>strictly necessary</strong> for the service to function — you cannot use Glymphix without it.</li>
+                    <li>Is <strong>not used for tracking or advertising</strong>.</li>
+                    <li>Is deleted when you log out or close your browser (it is not a persistent tracking cookie).</li>
+                </ul>
+                <p>We do not use third-party advertising cookies, analytics trackers, or fingerprinting scripts.</p>
+            </div>
+
+            <!-- Section 10 -->
+            <div class="policy-section" id="children">
+                <h2><i class="fas fa-child"></i> 10. Children's Privacy</h2>
+                <p>Glymphix is intended for students and educators. We do not knowingly collect personal data from children under 13 years of age without verifiable parental consent. If you believe a child has registered without consent, please contact us immediately so we can delete the account.</p>
+            </div>
+
+            <!-- Section 11 -->
+            <div class="policy-section" id="changes">
+                <h2><i class="fas fa-history"></i> 11. Changes to This Policy</h2>
+                <p>We may update this Privacy Policy periodically. When we make significant changes, we will:</p>
+                <ul>
+                    <li>Update the "Last updated" date at the top of this page.</li>
+                    <li>Display an in-app notice to logged-in users on their next visit.</li>
+                </ul>
+                <p>Continued use of Glymphix after the effective date constitutes acceptance of the updated policy.</p>
+            </div>
+
+            <!-- Section 12 -->
+            <div class="policy-section" id="contact">
+                <h2><i class="fas fa-envelope"></i> 12. How to Contact Us / Data Protection Officer</h2>
+                <p>For privacy-related concerns, data subject requests, or complaints:</p>
+                <div class="contact-card">
+                    <p><strong>Data Protection Officer (DPO)</strong></p>
+                    <p><i class="fas fa-envelope"></i> privacy@glymphix.app</p>
+                    <p><i class="fas fa-globe"></i> <a href="https://www.privacy.gov.ph" target="_blank">National Privacy Commission — privacy.gov.ph</a></p>
+                </div>
+                <p style="margin-top:14px;">You may also lodge a complaint directly with the <strong>National Privacy Commission (NPC)</strong> if you believe your rights under RA 10173 have been violated.</p>
+            </div>
+        </div>
+
+        <footer>
+            <div class="footer-content">
+                <p>&copy; 2026 Glymphix Developed by Studyholics. All rights reserved.</p>
+                <div class="footer-links">
+                    <a href="{{ url_for('privacy_policy') }}">Privacy Policy</a>
+                    <a href="{{ url_for('terms_of_service') }}">Terms of Service</a>
+                    <a href="#">Contact</a>
+                </div>
+            </div>
+        </footer>
+    </div>
+</body>
+</html>

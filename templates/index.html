@@ -104,7 +104,7 @@
         {% if not current_user.is_authenticated %}
         <div class="welcome-section">
             <div class="welcome-card">
-                <h2>Welcome to Code Image to Text Converter! 👋</h2>
+                <h2>Welcome to Glymphix your personal Code Image to Text Converter! 👋</h2>
                 <p>Please login or create an account to start converting your code images.</p>
                 <div class="welcome-buttons">
                     <a href="{{ url_for('login_page') }}" class="btn-primary">
@@ -261,10 +261,10 @@
 
         <footer>
             <div class="footer-content">
-                <p>&copy; 2026 Code Image to Text Converter Developed by Bryan Corsino. All rights reserved.</p>
+                <p>&copy; 2026 Glymphix Developed by @StudyHolics. All rights reserved.</p>
                 <div class="footer-links">
-                    <a href="#">Privacy Policy</a>
-                    <a href="#">Terms of Service</a>
+                    <a href="{{ url_for('privacy_policy') }}">Privacy Policy</a>
+                    <a href="{{ url_for('terms_of_service') }}">Terms of Service</a>
                     <a href="#">Contact</a>
                 </div>
             </div>
@@ -344,5 +344,39 @@
             });
         }());
     </script>
+
+    <!-- ── Cookie consent banner (RA 10173 / session cookie notice) ── -->
+    <div id="cookie-banner"
+         style="display:none; position:fixed; bottom:0; left:0; right:0;
+                background:#2d3748; color:#e2e8f0; padding:14px 24px;
+                z-index:9998; display:flex; align-items:center;
+                justify-content:space-between; gap:16px; flex-wrap:wrap;
+                font-size:0.88rem; line-height:1.5;">
+        <span>
+            <i class="fas fa-cookie-bite" style="color:#f6ad55; margin-right:6px;"></i>
+            Glymphix uses a single <strong>essential session cookie</strong> to keep you logged in.
+            No tracking or advertising cookies are used.
+            <a href="{{ url_for('privacy_policy') }}#cookies"
+               style="color:#90cdf4; margin-left:6px;">Learn more</a>
+        </span>
+        <button onclick="acceptCookies()"
+                style="background:#667eea; color:#fff; border:none; padding:8px 18px;
+                       border-radius:8px; cursor:pointer; font-size:0.88rem;
+                       white-space:nowrap; flex-shrink:0;">
+            Got it
+        </button>
+    </div>
+    <script>
+        (function() {
+            if (!localStorage.getItem('cookie_consent')) {
+                document.getElementById('cookie-banner').style.display = 'flex';
+            }
+        })();
+        function acceptCookies() {
+            localStorage.setItem('cookie_consent', '1');
+            document.getElementById('cookie-banner').style.display = 'none';
+        }
+    </script>
+
 </body>
 </html>

@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Terms of Service - Glymphix</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        .policy-container { max-width: 860px; margin: 0 auto; padding: 0 20px 60px; }
+        .policy-hero {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: #fff; border-radius: 16px; padding: 40px 40px 32px; margin: 28px 0 36px;
+        }
+        .policy-hero h1 { font-size: 1.9rem; font-weight: 700; margin: 0 0 8px; }
+        .policy-hero p  { font-size: 0.95rem; opacity: 0.9; margin: 0; }
+        .effective-badge {
+            display: inline-block; background: rgba(255,255,255,0.2);
+            border-radius: 20px; padding: 4px 14px; font-size: 0.82rem; margin-top: 14px;
+        }
+        .toc { background: #f0f9ff; border: 1px solid #bee3f8; border-radius: 12px; padding: 22px 28px; margin-bottom: 36px; }
+        .toc h3 { font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.07em; color: #718096; margin: 0 0 14px; }
+        .toc ol  { margin: 0; padding-left: 20px; line-height: 2; }
+        .toc a   { color: #3182ce; text-decoration: none; font-size: 0.93rem; }
+        .toc a:hover { text-decoration: underline; }
+        .policy-section { margin-bottom: 40px; }
+        .policy-section h2 {
+            font-size: 1.2rem; font-weight: 700; color: #2d3748;
+            border-bottom: 2px solid #4facfe; padding-bottom: 10px; margin-bottom: 18px;
+            display: flex; align-items: center; gap: 10px;
+        }
+        .policy-section h2 i { color: #4facfe; font-size: 1rem; }
+        .policy-section p, .policy-section li { font-size: 0.95rem; color: #4a5568; line-height: 1.8; margin-bottom: 10px; }
+        .policy-section ul, .policy-section ol { padding-left: 22px; margin-bottom: 14px; }
+        .highlight-box { background: #fffbeb; border: 1px solid #f6e05e; border-radius: 10px; padding: 16px 20px; margin: 16px 0; font-size: 0.92rem; color: #744210; }
+        .highlight-box i { margin-right: 8px; }
+        .warning-box { background: #fff5f5; border: 1px solid #feb2b2; border-radius: 10px; padding: 16px 20px; margin: 16px 0; font-size: 0.92rem; color: #742a2a; }
+        .warning-box i { margin-right: 8px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="header-top">
+                <h1>Glymphix</h1>
+                <a href="{{ url_for('index') }}" class="back-btn">
+                    <i class="fas fa-arrow-left"></i> Back to Home
+                </a>
+            </div>
+        </header>
+
+        <div class="policy-container">
+            <div class="policy-hero">
+                <h1><i class="fas fa-file-contract"></i> Terms of Service</h1>
+                <p>Please read these terms carefully before using Glymphix. By creating an account or using the service, you agree to be bound by these terms.</p>
+                <span class="effective-badge">
+                    <i class="fas fa-calendar-alt"></i> Effective: January 1, 2026 &nbsp;|&nbsp; Last updated: March 2026
+                </span>
+            </div>
+
+            <div class="toc">
+                <h3><i class="fas fa-list"></i> Contents</h3>
+                <ol>
+                    <li><a href="#acceptance">Acceptance of terms</a></li>
+                    <li><a href="#service">Description of service</a></li>
+                    <li><a href="#accounts">User accounts and eligibility</a></li>
+                    <li><a href="#acceptable-use">Acceptable use policy</a></li>
+                    <li><a href="#intellectual-property">Intellectual property</a></li>
+                    <li><a href="#uploaded-content">Uploaded content</a></li>
+                    <li><a href="#privacy">Privacy and data protection</a></li>
+                    <li><a href="#disclaimers">Disclaimers and limitations of liability</a></li>
+                    <li><a href="#termination">Account termination</a></li>
+                    <li><a href="#governing-law">Governing law (Philippines)</a></li>
+                    <li><a href="#changes">Changes to these terms</a></li>
+                    <li><a href="#contact">Contact us</a></li>
+                </ol>
+            </div>
+
+            <div class="policy-section" id="acceptance">
+                <h2><i class="fas fa-handshake"></i> 1. Acceptance of Terms</h2>
+                <p>By registering for or using <strong>Glymphix</strong> ("Service"), operated by <strong>Studyholics</strong> ("we", "us", "our"), you agree to these Terms of Service and our <a href="{{ url_for('privacy_policy') }}">Privacy Policy</a>, which is incorporated herein by reference.</p>
+                <p>If you do not agree to these terms, you must not create an account or use the Service.</p>
+            </div>
+
+            <div class="policy-section" id="service">
+                <h2><i class="fas fa-code"></i> 2. Description of Service</h2>
+                <p>Glymphix is an educational tool that uses optical character recognition (OCR) technology to convert images of handwritten or printed code into editable text. The Service provides:</p>
+                <ul>
+                    <li>OCR-based code extraction from uploaded images</li>
+                    <li>Language detection (Python, Dart)</li>
+                    <li>Automated code feedback and suggestions</li>
+                    <li>Personal analysis history and shareable result links</li>
+                </ul>
+                <div class="highlight-box">
+                    <i class="fas fa-info-circle"></i>
+                    <strong>Educational purpose.</strong> Glymphix is designed to assist students and educators. OCR results may not be 100% accurate and should always be reviewed before use in academic submissions.
+                </div>
+            </div>
+
+            <div class="policy-section" id="accounts">
+                <h2><i class="fas fa-user"></i> 3. User Accounts and Eligibility</h2>
+                <ul>
+                    <li>You must be at least <strong>13 years of age</strong> to use this Service. Users under 18 should have parental consent.</li>
+                    <li>You must provide accurate and complete information when registering.</li>
+                    <li>You are responsible for maintaining the confidentiality of your password and for all activity under your account.</li>
+                    <li>You must notify us immediately if you suspect unauthorised access to your account.</li>
+                    <li>You may not create more than one account or impersonate another person.</li>
+                </ul>
+            </div>
+
+            <div class="policy-section" id="acceptable-use">
+                <h2><i class="fas fa-check-circle"></i> 4. Acceptable Use Policy</h2>
+                <p>You agree <strong>not</strong> to use the Service to:</p>
+                <ul>
+                    <li>Upload content that is illegal, harmful, offensive, or infringes the rights of others.</li>
+                    <li>Upload malicious code, malware, or exploit-related content.</li>
+                    <li>Attempt to gain unauthorised access to the Service or its underlying systems.</li>
+                    <li>Use automated bots or scripts to abuse the Service.</li>
+                    <li>Scrape, copy, or resell the Service or its outputs without written permission.</li>
+                    <li>Circumvent rate limits or security measures.</li>
+                    <li>Submit or share another person's private code without their consent.</li>
+                </ul>
+                <div class="warning-box">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    Violation of this policy may result in immediate account suspension and, where applicable, reporting to relevant authorities under Philippine law.
+                </div>
+            </div>
+
+            <div class="policy-section" id="intellectual-property">
+                <h2><i class="fas fa-copyright"></i> 5. Intellectual Property</h2>
+                <p>All software, design, trademarks, and content comprising the Glymphix platform are owned by Studyholics or its licensors and are protected under applicable Philippine intellectual property laws.</p>
+                <p>You may not reproduce, modify, distribute, or create derivative works of the Service without our express written consent.</p>
+            </div>
+
+            <div class="policy-section" id="uploaded-content">
+                <h2><i class="fas fa-upload"></i> 6. Uploaded Content</h2>
+                <p>You retain all intellectual property rights to code or content you upload. By uploading content, you grant us a limited, non-exclusive licence to process it solely for the purpose of providing the Service to you.</p>
+                <ul>
+                    <li>Uploaded image files are <strong>deleted immediately</strong> after your analysis is generated.</li>
+                    <li>Extracted text results are stored in your account history until you delete them.</li>
+                    <li>Do not upload images containing sensitive personal data (ID numbers, passwords, financial information).</li>
+                </ul>
+            </div>
+
+            <div class="policy-section" id="privacy">
+                <h2><i class="fas fa-user-shield"></i> 7. Privacy and Data Protection</h2>
+                <p>Your use of the Service is also governed by our <a href="{{ url_for('privacy_policy') }}">Privacy Policy</a>, which describes how we collect, use, and protect your personal data in compliance with the <strong>Philippine Data Privacy Act of 2012 (RA 10173)</strong>.</p>
+                <p>You have the right to access, correct, and request deletion of your personal data at any time. See our Privacy Policy for details.</p>
+            </div>
+
+            <div class="policy-section" id="disclaimers">
+                <h2><i class="fas fa-exclamation-circle"></i> 8. Disclaimers and Limitations of Liability</h2>
+                <p>The Service is provided <strong>"as is"</strong> without warranty of any kind. We do not warrant that:</p>
+                <ul>
+                    <li>OCR results will be accurate, complete, or error-free.</li>
+                    <li>The Service will be uninterrupted or free from bugs.</li>
+                </ul>
+                <p>To the maximum extent permitted by Philippine law, Studyholics shall not be liable for any indirect, incidental, or consequential damages arising from your use of the Service, including academic consequences from relying on inaccurate OCR output.</p>
+            </div>
+
+            <div class="policy-section" id="termination">
+                <h2><i class="fas fa-times-circle"></i> 9. Account Termination</h2>
+                <p><strong>By you:</strong> You may delete your account at any time from your Profile page. Deletion is permanent and irreversible.</p>
+                <p><strong>By us:</strong> We reserve the right to suspend or terminate accounts that violate these Terms, with or without notice, where we determine it is necessary to protect the Service or other users.</p>
+            </div>
+
+            <div class="policy-section" id="governing-law">
+                <h2><i class="fas fa-balance-scale"></i> 10. Governing Law (Philippines)</h2>
+                <p>These Terms are governed by the laws of the <strong>Republic of the Philippines</strong>, including but not limited to:</p>
+                <ul>
+                    <li>Republic Act No. 10173 — Data Privacy Act of 2012</li>
+                    <li>Republic Act No. 8792 — Electronic Commerce Act of 2000</li>
+                    <li>Republic Act No. 10175 — Cybercrime Prevention Act of 2012</li>
+                </ul>
+                <p>Any dispute arising under these Terms shall be submitted to the courts of competent jurisdiction in the Philippines.</p>
+            </div>
+
+            <div class="policy-section" id="changes">
+                <h2><i class="fas fa-edit"></i> 11. Changes to These Terms</h2>
+                <p>We may update these Terms from time to time. Material changes will be communicated via an in-app notice. Continued use of the Service after the effective date of the updated Terms constitutes your acceptance.</p>
+            </div>
+
+            <div class="policy-section" id="contact">
+                <h2><i class="fas fa-envelope"></i> 12. Contact Us</h2>
+                <p>For questions about these Terms, please contact:</p>
+                <p><i class="fas fa-envelope"></i> <strong>legal@glymphix.app</strong></p>
+            </div>
+        </div>
+
+        <footer>
+            <div class="footer-content">
+                <p>&copy; 2026 Glymphix Developed by Studyholics. All rights reserved.</p>
+                <div class="footer-links">
+                    <a href="{{ url_for('privacy_policy') }}">Privacy Policy</a>
+                    <a href="{{ url_for('terms_of_service') }}">Terms of Service</a>
+                    <a href="#">Contact</a>
+                </div>
+            </div>
+        </footer>
+    </div>
+</body>
+</html>

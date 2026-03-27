@@ -15,6 +15,16 @@
             </div>
         </header>
 
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <div class="flash-messages">
+                    {% for category, message in messages %}
+                        <div class="flash {{ category }}">{{ message }}</div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+
         <div class="profile-section">
             <div class="profile-card">
                 <img src="{{ user.profile_pic }}" alt="Profile Picture" class="profile-pic-large">
@@ -32,7 +42,71 @@
                     <a href="{{ url_for('logout') }}" class="btn-secondary">Logout</a>
                 </div>
             </div>
+
+            <!-- ── Data Rights / Account Deletion (RA 10173 Right to Erasure) ── -->
+            <div class="profile-card" style="margin-top: 28px; border-top: 3px solid #e53e3e;">
+                <h3 style="color:#c53030; margin-bottom: 10px;">
+                    <i class="fas fa-user-times"></i> Delete My Account
+                </h3>
+                <p style="color:#718096; font-size:0.9rem; margin-bottom: 16px;">
+                    Under the <strong>Philippine Data Privacy Act (RA 10173, Sec. 16d)</strong>, you have the
+                    right to erasure. Deleting your account will <strong>permanently remove</strong> all your
+                    personal data, analyses, and history from Glymphix. This action cannot be undone.
+                </p>
+
+                <button type="button" class="btn-secondary"
+                        style="background:#fff5f5; color:#c53030; border:1px solid #feb2b2;"
+                        onclick="document.getElementById('delete-account-modal').style.display='flex'">
+                    <i class="fas fa-trash-alt"></i> Delete My Account Permanently
+                </button>
+            </div>
         </div>
     </div>
+
+    <!-- Delete account confirmation modal -->
+    <div id="delete-account-modal"
+         style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5);
+                z-index:9999; align-items:center; justify-content:center;">
+        <div style="background:#fff; border-radius:14px; padding:32px; max-width:440px;
+                    width:90%; box-shadow:0 8px 32px rgba(0,0,0,0.25);">
+            <h3 style="color:#c53030; margin-bottom:12px;">
+                <i class="fas fa-exclamation-triangle"></i> Permanently Delete Account?
+            </h3>
+            <p style="color:#4a5568; font-size:0.9rem; margin-bottom:20px; line-height:1.6;">
+                This will erase <strong>all your data</strong> including your account, analyses,
+                and history. This <strong>cannot be undone</strong>.
+            </p>
+
+            <form method="POST" action="{{ url_for('delete_account') }}">
+                {% if user.password_hash %}
+                <div style="margin-bottom:16px;">
+                    <label style="display:block; font-size:0.88rem; font-weight:600;
+                                  color:#4a5568; margin-bottom:6px;">
+                        Confirm your password to continue:
+                    </label>
+                    <input type="password" name="confirm_delete_password"
+                           placeholder="Enter your password"
+                           required
+                           style="width:100%; padding:10px 12px; border:1px solid #e2e8f0;
+                                  border-radius:8px; font-size:0.9rem;">
+                </div>
+                {% endif %}
+
+                <div style="display:flex; gap:12px; justify-content:flex-end;">
+                    <button type="button" class="btn-secondary"
+                            onclick="document.getElementById('delete-account-modal').style.display='none'">
+                        Cancel
+                    </button>
+                    <button type="submit"
+                            style="background:#c53030; color:#fff; border:none; padding:10px 20px;
+                                   border-radius:8px; font-size:0.9rem; cursor:pointer; font-weight:600;">
+                        <i class="fas fa-trash-alt"></i> Yes, delete permanently
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </body>
 </html>
