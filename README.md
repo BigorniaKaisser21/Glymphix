@@ -1,2 +1,2 @@
 # Glymphix
-a thesis web applicatoin
+a thesis web application made by me
