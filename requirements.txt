@@ -8,8 +8,6 @@ flask-migrate
 werkzeug==2.3.8
 gunicorn
 psycopg2-binary
-flask db upgrade
-
 # ─── OAuth ────────────────────────────────────────────────────────────────────
 authlib
 
