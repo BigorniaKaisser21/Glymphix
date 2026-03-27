@@ -65,8 +65,20 @@ app.config['MAIL_DEFAULT_SENDER'] = os.getenv('MAIL_USERNAME')
 mail = Mail(app)
 
 # Database configuration
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///users.db'
+# Render Postgres supplies DATABASE_URL automatically when a Postgres instance
+# is attached to the service.  Older Render (and Heroku) versions emit the URL
+# with the "postgres://" scheme; SQLAlchemy 1.4+ requires "postgresql://".
+_db_url = os.getenv('DATABASE_URL', 'sqlite:///users.db')
+if _db_url.startswith('postgres://'):
+    _db_url = _db_url.replace('postgres://', 'postgresql://', 1)
+app.config['SQLALCHEMY_DATABASE_URI'] = _db_url
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+# Connection-pool keep-alive: Render's Postgres closes idle connections after
+# 5 minutes; pre_ping recycles stale connections before they are used.
+app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
+    'pool_pre_ping': True,
+    'pool_recycle': 280,   # recycle connections every ~4.5 min
+}
 db = SQLAlchemy(app)
 
 # Initialize Flask-Migrate
@@ -1387,24 +1399,192 @@ def debug_handwriting():
 
 @app.route('/forgot-password', methods=['GET', 'POST'])
 def forgot_password():
+    """
+    3-step password reset flow driven by a hidden `step` field:
+
+      step=email  → validate email, send OTP, store in session
+      step=resend → regenerate & resend OTP (same session email)
+      step=otp    → verify the 6-digit code
+      step=reset  → validate passwords match, update hash, clear session
+    """
     if current_user.is_authenticated:
         return redirect(url_for('dashboard'))
 
-    if request.method == 'POST':
-        email = request.form.get('email')
+    # ── Template context defaults ─────────────────────────────────────────
+    ctx = dict(
+        step=1,
+        session_email='',
+        verified_otp='',
+        password_reset_success=False,
+    )
+
+    if request.method == 'GET':
+        return render_template('forgot_password.html', **ctx)
+
+    # ── POST ─────────────────────────────────────────────────────────────
+    form_step = request.form.get('step', 'email')
+
+    # ── STEP 1: email ─────────────────────────────────────────────────────
+    if form_step == 'email':
+        email = request.form.get('email', '').strip().lower()
+        if not email:
+            flash('Please enter your email address.', 'error')
+            return render_template('forgot_password.html', **ctx)
+
         user = User.query.filter_by(email=email).first()
+        if not user:
+            # Don't reveal whether the account exists
+            flash('If that email is registered, a reset code has been sent.', 'info')
+            return render_template('forgot_password.html', **ctx)
 
-        if user:
-            if user.auth_provider == 'google':
-                flash('This account uses Google Sign-In. Please login with Google.', 'warning')
-            else:
-                flash('Password reset link has been sent to your email. (Demo feature)', 'info')
-        else:
-            flash('Email not found in our records.', 'error')
+        if user.auth_provider == 'google':
+            flash('This account uses Google Sign-In. Please sign in with Google.', 'warning')
+            return render_template('forgot_password.html', **ctx)
 
-        return redirect(url_for('login_page'))
+        # Generate & send reset OTP (reuse existing helper, separate session keys)
+        otp = ''.join(random.choices(string.digits, k=6))
+        expiry = datetime.now(timezone.utc) + timedelta(minutes=10)
+        session['fp_otp']    = otp
+        session['fp_expiry'] = expiry.isoformat()
+        session['fp_email']  = email
 
-    return render_template('forgot_password.html')
+        try:
+            msg = Message(
+                subject='Your Glymphix password reset code',
+                recipients=[email],
+            )
+            msg.body = (
+                f"Your Glymphix password reset code is:\n\n"
+                f"  {otp}\n\n"
+                f"This code expires in 10 minutes.\n"
+                f"If you did not request a password reset, please ignore this email."
+            )
+            mail.send(msg)
+            logger.info("Password reset OTP sent to %s", email)
+        except Exception as e:
+            logger.error("Failed to send reset OTP to %s: %s", email, e)
+            flash('Failed to send the reset code. Please try again later.', 'error')
+            return render_template('forgot_password.html', **ctx)
+
+        ctx.update(step=2, session_email=email)
+        return render_template('forgot_password.html', **ctx)
+
+    # ── RESEND ────────────────────────────────────────────────────────────
+    if form_step == 'resend':
+        email = session.get('fp_email') or request.form.get('email', '').strip().lower()
+        if not email:
+            flash('Session expired. Please start again.', 'error')
+            return render_template('forgot_password.html', **ctx)
+
+        otp = ''.join(random.choices(string.digits, k=6))
+        expiry = datetime.now(timezone.utc) + timedelta(minutes=10)
+        session['fp_otp']    = otp
+        session['fp_expiry'] = expiry.isoformat()
+        session['fp_email']  = email
+
+        try:
+            msg = Message(
+                subject='Your Glymphix password reset code',
+                recipients=[email],
+            )
+            msg.body = (
+                f"Your Glymphix password reset code is:\n\n"
+                f"  {otp}\n\n"
+                f"This code expires in 10 minutes.\n"
+                f"If you did not request a password reset, please ignore this email."
+            )
+            mail.send(msg)
+            flash('A new reset code has been sent.', 'success')
+        except Exception as e:
+            logger.error("Failed to resend reset OTP to %s: %s", email, e)
+            flash('Failed to resend the code. Please try again.', 'error')
+
+        ctx.update(step=2, session_email=email)
+        return render_template('forgot_password.html', **ctx)
+
+    # ── STEP 2: OTP verify ────────────────────────────────────────────────
+    if form_step == 'otp':
+        email  = session.get('fp_email') or request.form.get('email', '').strip().lower()
+        stored = session.get('fp_otp')
+        expiry = session.get('fp_expiry')
+        entered = request.form.get('otp', '').strip()
+
+        ctx.update(step=2, session_email=email)
+
+        if not stored or not expiry or not email:
+            flash('Session expired. Please start again.', 'error')
+            return render_template('forgot_password.html', **dict(ctx, step=1, session_email=''))
+
+        try:
+            expiry_dt = datetime.fromisoformat(expiry)
+            if datetime.now(timezone.utc) > expiry_dt:
+                flash('Reset code has expired. Please request a new one.', 'error')
+                return render_template('forgot_password.html', **ctx)
+        except ValueError:
+            flash('Session error. Please start again.', 'error')
+            return render_template('forgot_password.html', **dict(ctx, step=1, session_email=''))
+
+        if entered != stored:
+            flash('Invalid reset code. Please try again.', 'error')
+            return render_template('forgot_password.html', **ctx)
+
+        # Code correct — advance to password step
+        ctx.update(step=3, session_email=email, verified_otp=entered)
+        return render_template('forgot_password.html', **ctx)
+
+    # ── STEP 3: reset password ────────────────────────────────────────────
+    if form_step == 'reset':
+        email    = session.get('fp_email') or request.form.get('email', '').strip().lower()
+        otp_val  = request.form.get('otp', '').strip()
+        stored   = session.get('fp_otp')
+        expiry   = session.get('fp_expiry')
+        password = request.form.get('password', '')
+        confirm  = request.form.get('confirm_password', '')
+
+        ctx.update(step=3, session_email=email, verified_otp=otp_val)
+
+        # Re-verify OTP hasn't been tampered with and hasn't expired
+        if not stored or otp_val != stored:
+            flash('Invalid session. Please start the reset process again.', 'error')
+            return render_template('forgot_password.html', **dict(ctx, step=1, session_email=''))
+
+        try:
+            expiry_dt = datetime.fromisoformat(expiry)
+            if datetime.now(timezone.utc) > expiry_dt:
+                flash('Your session has expired. Please request a new reset code.', 'error')
+                return render_template('forgot_password.html', **dict(ctx, step=1, session_email=''))
+        except ValueError:
+            flash('Session error. Please start again.', 'error')
+            return render_template('forgot_password.html', **dict(ctx, step=1, session_email=''))
+
+        if len(password) < 8:
+            flash('Password must be at least 8 characters.', 'error')
+            return render_template('forgot_password.html', **ctx)
+
+        if password != confirm:
+            flash('Passwords do not match.', 'error')
+            return render_template('forgot_password.html', **ctx)
+
+        user = User.query.filter_by(email=email).first()
+        if not user:
+            flash('Account not found. Please start again.', 'error')
+            return render_template('forgot_password.html', **dict(ctx, step=1, session_email=''))
+
+        user.set_password(password)
+        db.session.commit()
+
+        # Clear all reset session keys
+        session.pop('fp_otp',    None)
+        session.pop('fp_expiry', None)
+        session.pop('fp_email',  None)
+
+        logger.info("Password successfully reset for %s", email)
+        ctx.update(step=1, session_email='', verified_otp='', password_reset_success=True)
+        return render_template('forgot_password.html', **ctx)
+
+    # Unknown step — restart
+    flash('Something went wrong. Please try again.', 'error')
+    return render_template('forgot_password.html', **ctx)
 
 
 if __name__ == '__main__':
@@ -1416,6 +1596,8 @@ if __name__ == '__main__':
     print(f"EasyOCR: Loaded on first handwritten image upload")
     print(f"Qwen2-VL-2B-Instruct: Loaded on first handwritten image upload (QWEN2VL_ENABLED={QWEN2VL_ENABLED})")
     print(f"OCR Engine: {OCR_ENGINE}")
+    _db_display = _db_url if 'sqlite' in _db_url else _db_url.split('@')[-1]  # hide credentials
+    print(f"Database: {_db_display}")
     print("\nSupported languages: Python, Dart")
     print("\nAuthentication: Google OAuth + Local Registration")
     print("=" * 50)
