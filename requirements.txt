@@ -10,6 +10,7 @@ gunicorn
 psycopg2-binary
 flask_limiter
 bleach
+python-bidi==0.4.2
 
 # ─── OAuth ────────────────────────────────────────────────────────────────────
 authlib
