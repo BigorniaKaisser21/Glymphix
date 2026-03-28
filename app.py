@@ -142,20 +142,30 @@ OCR_ENGINE = 'tesseract'  # 'tesseract' or 'rapidocr' or 'both'
 QWEN2VL_ENABLED = False
 
 # Initialize RapidOCR reader (as fallback) — supports Python 3.12+ on Windows
-logger.info("Initializing RapidOCR...")
-try:
-    if _RAPIDOCR_IMPORTABLE:
-        rapid_reader = _RapidOCR()
-        RAPIDOCR_AVAILABLE = True
-        logger.info("RapidOCR initialized successfully")
-    else:
-        logger.warning("rapidocr-onnxruntime not installed; RapidOCR disabled.")
-        rapid_reader = None
-        RAPIDOCR_AVAILABLE = False
-except Exception as e:
-    logger.error(f"RapidOCR initialization failed: {e}")
+# Skip on low-memory hosts (e.g. Render free tier 512 MB) — loading ONNX models
+# at startup exhausts RAM and causes a SIGSEGV before the first request is served.
+# Set DISABLE_HEAVY_MODELS=true in Render environment to activate this guard.
+_DISABLE_HEAVY_MODELS = os.getenv('DISABLE_HEAVY_MODELS', '').lower() in ('1', 'true', 'yes')
+
+if _DISABLE_HEAVY_MODELS:
+    logger.warning("DISABLE_HEAVY_MODELS=true — RapidOCR skipped to conserve RAM.")
     rapid_reader = None
     RAPIDOCR_AVAILABLE = False
+else:
+    logger.info("Initializing RapidOCR...")
+    try:
+        if _RAPIDOCR_IMPORTABLE:
+            rapid_reader = _RapidOCR()
+            RAPIDOCR_AVAILABLE = True
+            logger.info("RapidOCR initialized successfully")
+        else:
+            logger.warning("rapidocr-onnxruntime not installed; RapidOCR disabled.")
+            rapid_reader = None
+            RAPIDOCR_AVAILABLE = False
+    except Exception as e:
+        logger.error(f"RapidOCR initialization failed: {e}")
+        rapid_reader = None
+        RAPIDOCR_AVAILABLE = False
 
 # Create upload directory if not exists
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
@@ -982,9 +992,29 @@ def send_otp_email(user_email):
         raise
 
 
+# ============= ERROR HANDLERS =============
+
+@app.errorhandler(500)
+def internal_error(e):
+    import traceback
+    logger.error("500 Internal Server Error:\n%s", traceback.format_exc())
+    db.session.rollback()  # Roll back any broken DB transaction
+    flash('Something went wrong. Please try again.', 'error')
+    return redirect(url_for('login_page'))
+
+
+@app.errorhandler(Exception)
+def unhandled_exception(e):
+    import traceback
+    logger.error("Unhandled Exception:\n%s", traceback.format_exc())
+    db.session.rollback()
+    flash('An unexpected error occurred. Please try again.', 'error')
+    return redirect(url_for('login_page')), 500
+
+
 # ============= AUTHENTICATION ROUTES =============
 
-@app.route('/')
+
 def index():
     if current_user.is_authenticated:
         return redirect(url_for('dashboard'))
@@ -1040,7 +1070,8 @@ def login_page():
             try:
                 send_otp_email(user.email)
                 return redirect(url_for('verify_otp'))
-            except Exception:
+            except Exception as e:
+                logger.error("OTP email failed during login for %s: %s", user.email, e, exc_info=True)
                 flash('Could not send verification email. Check your MAIL settings.', 'error')
                 return redirect(url_for('login_page'))
         else:
