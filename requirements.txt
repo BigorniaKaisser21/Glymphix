@@ -3,6 +3,7 @@ flask==2.3.3
 flask-login
 flask-sqlalchemy
 flask-migrate
+flask-mail                  # FIX: was missing — required by app.py (send_otp_email)
 # Pinned below 3.x: app imports werkzeug.urls.url_parse which was removed in
 # Werkzeug 3.0.  Remove the pin (and the import) when migrating to 3.x.
 werkzeug==2.3.8
@@ -10,7 +11,6 @@ gunicorn
 psycopg2-binary
 flask_limiter
 bleach
-python-bidi==0.4.2
 
 # ─── OAuth ────────────────────────────────────────────────────────────────────
 authlib
@@ -21,10 +21,13 @@ waitress
 # ─── OCR engines ──────────────────────────────────────────────────────────────
 pytesseract
 rapidocr-onnxruntime
-easyocr 
+python-bidi==0.4.2          # FIX: pin to last pure-Python release — 0.6.0+ requires
+                            # Rust/Cargo which fails on Render's read-only filesystem
+easyocr
 
 # ─── Image processing ─────────────────────────────────────────────────────────
-opencv-python
+opencv-python-headless      # FIX: changed from opencv-python — Render is headless,
+                            # opencv-python requires libGL display libs not present
 numpy
 Pillow
 
