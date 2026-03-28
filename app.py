@@ -6,6 +6,9 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.urls import url_parse  # kept for Werkzeug < 2.3 compatibility
 from authlib.integrations.flask_client import OAuth
 from ocr_utils import ocr_quality_score
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
+import bleach
 import os
 import sys
 import cv2
@@ -55,6 +58,15 @@ if not _secret_key:
     )
 app.secret_key = _secret_key
 
+# ── Session cookie security ───────────────────────────────────────────────────
+# HttpOnly: JS cannot read the cookie (XSS mitigation)
+# SameSite=Lax: CSRF mitigation for cross-site requests
+# Secure: only sent over HTTPS (set False for local HTTP development)
+app.config['SESSION_COOKIE_HTTPONLY'] = True
+app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
+app.config['SESSION_COOKIE_SECURE'] = os.getenv('FLASK_ENV') != 'development'
+
+
 # Flask-Mail configuration
 app.config['MAIL_SERVER'] = 'smtp.gmail.com'
 app.config['MAIL_PORT'] = 587
@@ -65,20 +77,8 @@ app.config['MAIL_DEFAULT_SENDER'] = os.getenv('MAIL_USERNAME')
 mail = Mail(app)
 
 # Database configuration
-# Render Postgres supplies DATABASE_URL automatically when a Postgres instance
-# is attached to the service.  Older Render (and Heroku) versions emit the URL
-# with the "postgres://" scheme; SQLAlchemy 1.4+ requires "postgresql://".
-_db_url = os.getenv('DATABASE_URL', 'sqlite:///users.db')
-if _db_url.startswith('postgres://'):
-    _db_url = _db_url.replace('postgres://', 'postgresql://', 1)
-app.config['SQLALCHEMY_DATABASE_URI'] = _db_url
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///users.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-# Connection-pool keep-alive: Render's Postgres closes idle connections after
-# 5 minutes; pre_ping recycles stale connections before they are used.
-app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
-    'pool_pre_ping': True,
-    'pool_recycle': 280,   # recycle connections every ~4.5 min
-}
 db = SQLAlchemy(app)
 
 # Initialize Flask-Migrate
@@ -90,6 +90,15 @@ login_manager.init_app(app)
 login_manager.login_view = 'login_page'
 login_manager.login_message = 'Please log in to access this page.'
 login_manager.login_message_category = 'warning'
+
+
+# ── Rate limiter (brute-force / OTP enumeration protection) ─────────────────
+limiter = Limiter(
+    key_func=get_remote_address,
+    app=app,
+    default_limits=[],          # no global limit; apply per-route only
+    storage_uri='memory://',    # swap to 'redis://localhost' in production
+)
 
 # OAuth configuration
 oauth = OAuth(app)
@@ -192,6 +201,61 @@ class Analysis(db.Model):
 # Create database tables
 with app.app_context():
     db.create_all()
+
+
+
+@app.after_request
+def set_security_headers(response):
+    """Add security headers to every response.
+
+    HSTS: tells browsers to always use HTTPS for this domain (1 year).
+    X-Frame-Options: prevents clickjacking.
+    X-Content-Type-Options: prevents MIME-sniffing.
+    Referrer-Policy: limits referrer info sent to third parties.
+
+    For authenticated users we also:
+    - Set Cache-Control: no-store so the browser never caches the page.
+    - Inject a bfcache guard script into HTML responses.
+
+    The bfcache (back-forward cache) is a browser optimisation that
+    restores pages instantly on back/forward navigation by replaying a
+    frozen snapshot — it never contacts the server, so @login_required
+    and cookie checks are bypassed entirely. The injected script detects
+    a bfcache restore (pageshow event with persisted=true) and forces a
+    full reload, which then hits the server and gets redirected to login.
+    """
+    response.headers['X-Frame-Options'] = 'SAMEORIGIN'
+    response.headers['X-Content-Type-Options'] = 'nosniff'
+    response.headers['Referrer-Policy'] = 'strict-origin-when-cross-origin'
+    if os.getenv('FLASK_ENV') != 'development':
+        response.headers['Strict-Transport-Security'] = (
+            'max-age=31536000; includeSubDomains'
+        )
+
+    # Apply no-store + bfcache guard to authenticated HTML pages only
+    if current_user.is_authenticated and 'text/html' in response.content_type:
+        response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
+        response.headers['Pragma'] = 'no-cache'
+        response.headers['Expires'] = '0'
+
+        # Inject bfcache guard before </body>.
+        # When the browser restores a page from bfcache (back button after
+        # logout), event.persisted is true. We force window.location.reload()
+        # which contacts the server — @login_required then redirects to login.
+        bfcache_script = (
+            b'<script>'
+            b'window.addEventListener("pageshow",function(e){'
+            b'if(e.persisted||performance.getEntriesByType("navigation")[0]?.type==="back_forward"){'
+            b'window.location.reload();'
+            b'}});'
+            b'</script>'
+        )
+        data = response.get_data()
+        if b'</body>' in data:
+            data = data.replace(b'</body>', bfcache_script + b'</body>', 1)
+            response.set_data(data)
+
+    return response
 
 
 @login_manager.user_loader
@@ -930,7 +994,8 @@ def dashboard():
                            dart_count=dart_count)
 
 
-@app.route('/login', methods=['GET', 'POST'])
+@app.route("/login", methods=["GET", "POST"])
+@limiter.limit("10 per minute")
 def login_page():
     if current_user.is_authenticated:
         return redirect(url_for('dashboard'))
@@ -966,16 +1031,17 @@ def login_page():
 
 
 @app.route('/register', methods=['GET', 'POST'])
+@limiter.limit('5 per minute')
 def register_page():
     if current_user.is_authenticated:
         return redirect(url_for('dashboard'))
 
     if request.method == 'POST':
-        email = request.form.get('email')
-        username = request.form.get('username')
-        password = request.form.get('password')
-        confirm_password = request.form.get('confirm_password')
-        name = request.form.get('name', '')
+        email = bleach.clean(request.form.get('email', '').strip())
+        username = bleach.clean(request.form.get('username', '').strip())
+        password = request.form.get('password', '')
+        confirm_password = request.form.get('confirm_password', '')
+        name = bleach.clean(request.form.get('name', '').strip())
 
         if not email or not username or not password:
             flash('All fields are required.', 'error')
@@ -1085,6 +1151,7 @@ def authorize():
 
 
 @app.route('/verify-otp', methods=['GET', 'POST'])
+@limiter.limit('5 per minute')
 def verify_otp():
     """OTP verification — required after login and registration."""
     email = session.get('otp_email')
@@ -1105,8 +1172,18 @@ def verify_otp():
             flash('Code has expired. Please request a new one.', 'error')
             return render_template('verify_otp.html', email=email)
 
+        # OTP brute-force guard: lock out after 5 wrong attempts
+        otp_attempts = session.get('otp_attempts', 0) + 1
         if entered != stored:
-            flash('Incorrect code. Please try again.', 'error')
+            if otp_attempts >= 5:
+                session.pop('otp', None)
+                session.pop('otp_expiry', None)
+                session.pop('otp_email', None)
+                session.pop('otp_attempts', None)
+                flash('Too many incorrect attempts. Please log in again.', 'error')
+                return redirect(url_for('login_page'))
+            session['otp_attempts'] = otp_attempts
+            flash(f'Incorrect code. {5 - otp_attempts} attempt(s) remaining.', 'error')
             return render_template('verify_otp.html', email=email)
 
         # ✅ OTP correct — clear OTP session data and finish login
@@ -1114,6 +1191,7 @@ def verify_otp():
         session.pop('otp', None)
         session.pop('otp_expiry', None)
         session.pop('otp_email', None)
+        session.pop('otp_attempts', None)
 
         user = User.query.filter_by(email=email).first()
         if not user:
@@ -1131,6 +1209,7 @@ def verify_otp():
 
 
 @app.route('/resend-otp', methods=['POST'])
+@limiter.limit('3 per 10 minutes')
 def resend_otp():
     """Resend a fresh OTP to the same email address."""
     email = session.get('otp_email')
@@ -1148,9 +1227,20 @@ def resend_otp():
 @login_required
 def logout():
     logout_user()
-    session.pop('user', None)
+    session.clear()  # Wipe ALL session data, not just the 'user' key
     flash('You have been logged out successfully.', 'success')
-    return redirect(url_for('index'))
+    response = redirect(url_for('index'))
+    # Prevent the browser from serving a cached authenticated page on back-button
+    response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
+    response.headers['Pragma'] = 'no-cache'
+    response.headers['Expires'] = '0'
+    # Explicitly delete the Flask-Login remember_me cookie.
+    # When a user logs in with "Remember me", Flask-Login sets a persistent
+    # cookie called 'remember_token' that survives session.clear().
+    # On the next request it silently re-authenticates the user, making it
+    # appear as if logout never happened. Deleting it here closes that hole.
+    response.delete_cookie('remember_token')
+    return response
 
 
 @app.route('/profile')
@@ -1314,6 +1404,49 @@ def delete_analysis(analysis_id):
     return redirect(url_for('history'))
 
 
+
+@app.route('/delete-account', methods=['POST'])
+@login_required
+def delete_account():
+    """
+    Permanently erase the current user's account and all associated data.
+
+    Implements the data subject's Right to Erasure under the Philippine
+    Data Privacy Act (RA 10173, Sec. 16d).  Requires the user to confirm
+    their password before deletion to prevent accidental or CSRF-triggered
+    removal.
+    """
+    password = request.form.get('confirm_delete_password', '')
+
+    # Google-only accounts have no password hash — skip password check
+    if current_user.password_hash:
+        if not current_user.check_password(password):
+            flash('Incorrect password. Account was not deleted.', 'error')
+            return redirect(url_for('profile'))
+
+    user_id = current_user.id
+
+    # Delete all uploaded files associated with this user
+    for analysis in current_user.analyses:
+        try:
+            filepath = os.path.join(app.config['UPLOAD_FOLDER'], analysis.filename or '')
+            if filepath and os.path.exists(filepath):
+                os.remove(filepath)
+        except Exception as e:
+            logger.warning(f'Could not remove file during account deletion: {e}')
+
+    logout_user()
+    session.clear()
+
+    # cascade='all, delete-orphan' on User.analyses handles Analysis rows
+    user = db.session.get(User, user_id)
+    if user:
+        db.session.delete(user)
+        db.session.commit()
+
+    flash('Your account and all data have been permanently deleted.', 'success')
+    return redirect(url_for('index'))
+
 @app.route('/teach-handwriting', methods=['POST'])
 @login_required
 def teach_handwriting():
@@ -1398,6 +1531,7 @@ def debug_handwriting():
 
 
 @app.route('/forgot-password', methods=['GET', 'POST'])
+@limiter.limit('5 per minute')
 def forgot_password():
     """
     3-step password reset flow driven by a hidden `step` field:
@@ -1587,6 +1721,19 @@ def forgot_password():
     return render_template('forgot_password.html', **ctx)
 
 
+
+@app.route('/privacy-policy')
+def privacy_policy():
+    """Render the Privacy Policy page (RA 10173 compliant notice)."""
+    return render_template('privacy_policy.html')
+
+
+@app.route('/terms-of-service')
+def terms_of_service():
+    """Render the Terms of Service page."""
+    return render_template('terms_of_service.html')
+
+
 if __name__ == '__main__':
     print("=" * 50)
     print("Code Image to Text Converter")
@@ -1596,8 +1743,6 @@ if __name__ == '__main__':
     print(f"EasyOCR: Loaded on first handwritten image upload")
     print(f"Qwen2-VL-2B-Instruct: Loaded on first handwritten image upload (QWEN2VL_ENABLED={QWEN2VL_ENABLED})")
     print(f"OCR Engine: {OCR_ENGINE}")
-    _db_display = _db_url if 'sqlite' in _db_url else _db_url.split('@')[-1]  # hide credentials
-    print(f"Database: {_db_display}")
     print("\nSupported languages: Python, Dart")
     print("\nAuthentication: Google OAuth + Local Registration")
     print("=" * 50)

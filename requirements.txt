@@ -8,6 +8,9 @@ flask-migrate
 werkzeug==2.3.8
 gunicorn
 psycopg2-binary
+flask_limiter
+bleach
+
 # ─── OAuth ────────────────────────────────────────────────────────────────────
 authlib
 
@@ -17,7 +20,7 @@ waitress
 # ─── OCR engines ──────────────────────────────────────────────────────────────
 pytesseract
 rapidocr-onnxruntime
-                  # was missing — used by easyocr_processor.py
+easyocr 
 
 # ─── Image processing ─────────────────────────────────────────────────────────
 opencv-python
