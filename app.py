@@ -207,7 +207,17 @@ class Analysis(db.Model):
 
 # Create database tables
 with app.app_context():
-    db.create_all()
+    # Run migrations automatically on startup so flask db upgrade
+    # does not need to be called manually (required on Render free tier
+    # where the shell is not available).
+    try:
+        from flask_migrate import upgrade as db_upgrade
+        db_upgrade()
+        logger.info("Database migrations applied successfully.")
+    except Exception as e:
+        # Fallback: if migrations folder doesn't exist yet, just create tables
+        logger.warning("Migration failed (%s) — falling back to db.create_all()", e)
+        db.create_all()
 
 
 
