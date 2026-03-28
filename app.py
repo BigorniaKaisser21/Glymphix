@@ -132,7 +132,10 @@ OCR_ENGINE = 'tesseract'  # 'tesseract' or 'rapidocr' or 'both'
 
 # Qwen2-VL availability is determined lazily (model loads on first use).
 # Set QWEN2VL_ENABLED=False here to skip it even when the package is present.
-QWEN2VL_ENABLED = True
+# Disabled on Render free tier (512 MB RAM) — Qwen2-VL + PyTorch alone exceed
+# the memory limit and cause the gunicorn worker to be SIGKILL'd mid-upload.
+# Re-enable only on an instance with at least 4 GB RAM.
+QWEN2VL_ENABLED = False
 
 # Initialize RapidOCR reader (as fallback) — supports Python 3.12+ on Windows
 logger.info("Initializing RapidOCR...")
@@ -364,7 +367,9 @@ def extract_handwritten_code(image_path):
     Each engine is scored independently; the highest-scoring result is used
     directly without any cross-engine token voting or combination step.
     """
-    EASYOCR_ENABLED = True
+    # Disabled on Render free tier — EasyOCR loads a ~200 MB model into RAM
+    # which combined with RapidOCR and Tesseract exceeds the 512 MB limit.
+    EASYOCR_ENABLED = False
 
     try:
         from rapidocr_processor import get_rapidocr_processor
@@ -1079,7 +1084,8 @@ def register_page():
         try:
             send_otp_email(email)
             return redirect(url_for('verify_otp'))
-        except Exception:
+        except Exception as e:
+            logger.error("OTP email failed during registration for %s: %s", email, e, exc_info=True)
             # If mail fails, log the user in directly so registration still works
             login_user(user)
             user.last_login = datetime.now(timezone.utc)
